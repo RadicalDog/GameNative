@@ -23,7 +23,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,11 +36,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.data.LibraryItem
+import app.gamenative.service.DownloadService
 import app.gamenative.service.SteamService
 import app.gamenative.ui.internal.fakeAppInfo
 import app.gamenative.ui.theme.PluviaTheme
 import app.gamenative.ui.util.ListItemImage
-import app.gamenative.utils.StorageUtils
 
 @Composable
 internal fun AppItem(
@@ -52,12 +56,10 @@ internal fun AppItem(
         SteamService.isAppInstalled(appInfo.appId)
     }
 
-    val gameSize = remember(appInfo.appId) {
-        if (isInstalled) {
-            StorageUtils.formatBinarySize(
-                StorageUtils.getFolderSize(SteamService.getAppDirPath(appInfo.appId))
-            )
-        } else ""
+    var appSize by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        DownloadService.getSizeOnDiskDisplay(appInfo.appId) {  appSize = it }
     }
 
     // Modern card-style item with gradient hover effect
@@ -156,7 +158,7 @@ internal fun AppItem(
                         )
 
                         Text(
-                            text = gameSize,
+                            text = appSize,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

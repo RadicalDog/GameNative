@@ -1,5 +1,11 @@
 package app.gamenative.service
 
+import app.gamenative.utils.StorageUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.io.File
 
 object DownloadService {
@@ -36,5 +42,24 @@ object DownloadService {
             return emptyList<String>().toMutableList()
         }
         return subDir.toMutableList()
+    }
+
+    fun getSizeOnDiskDisplay (appId: Int, setResult: (String) -> Unit) {
+        // Outputs "3.76GiB" etc to the result lambda without locking up the main thread
+        if (SteamService.isAppInstalled(appId)) {
+            // Slow operation, so done asynchronously with a placeholder
+            var appSizeText = "..."
+            setResult(appSizeText)
+            CoroutineScope(Dispatchers.IO).launch {
+                val job = CoroutineScope(Dispatchers.IO).async {
+                    appSizeText = StorageUtils.formatBinarySize(
+                        StorageUtils.getFolderSize(SteamService.getAppDirPath(appId))
+                    )
+
+                    Timber.d("Finding $appId size $appSizeText")
+                    setResult(appSizeText)
+                }
+            }
+        }
     }
 }
