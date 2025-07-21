@@ -118,6 +118,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.border
 import app.gamenative.PrefManager
+import app.gamenative.service.DownloadService
 import java.nio.file.Paths
 import kotlin.io.path.pathString
 import kotlin.math.roundToInt
@@ -1149,16 +1150,7 @@ private fun AppScreenContent(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = if (isInstalled) {
-                                            StorageUtils.formatBinarySize(
-                                                StorageUtils.getFolderSize(SteamService.getAppDirPath(appInfo.id))
-                                            )
-                                        } else {
-                                            val depots = SteamService.getDownloadableDepots(appInfo.id)
-                                            val downloadBytes = depots.values.sumOf { it.manifests["public"]?.download ?: 0L }
-                                            val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0L }
-                                            "${StorageUtils.formatBinarySize(installBytes)}"
-                                        },
+                                        text = DownloadService.getSizeFromStoreDisplay(appInfo.id),
                                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                                     )
                                 }
