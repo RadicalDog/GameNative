@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,13 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.data.LibraryItem
-import app.gamenative.service.SteamService
 import app.gamenative.ui.data.LibraryState
 import app.gamenative.ui.enums.AppFilter
 import app.gamenative.ui.internal.fakeAppInfo
@@ -53,9 +50,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import app.gamenative.PrefManager
+import app.gamenative.utils.DeviceUtils
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -78,11 +77,8 @@ internal fun LibraryListPane(
     val snackBarHost = remember { SnackbarHostState() }
     val installedCount = remember { DownloadService.getDownloadDirectoryApps().count() }
 
-    // Determine the orientation to add additional scaffold padding.
-    val configuration = LocalConfiguration.current
-    val isPortrait = remember(configuration) {
-        configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-    }
+    // Responsive width for better layouts
+    val isViewWide = DeviceUtils.isViewWide(currentWindowAdaptiveInfo())
 
     // Infinite scroll: load next page when scrolled to bottom
     LaunchedEffect(listState, state.appInfoList.size) {
@@ -98,7 +94,6 @@ internal fun LibraryListPane(
     }
 
     Scaffold(
-        modifier = if (isPortrait) Modifier else Modifier.statusBarsPadding(),
         snackbarHost = { SnackbarHost(snackBarHost) }
     ) { paddingValues ->
         Column(
@@ -137,11 +132,11 @@ internal fun LibraryListPane(
                         )
                     }
 
-                    if (! isPortrait) {
+                    if (isViewWide) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(horizontal = 30.dp, vertical = 18.dp)
+                                .padding(horizontal = 30.dp)
                         ) {
                             LibrarySearchBar(
                                 state = state,
@@ -170,7 +165,7 @@ internal fun LibraryListPane(
                 }
             }
 
-            if (isPortrait) {
+            if (! isViewWide) {
                 // Search bar
                 Box(
                     modifier = Modifier
