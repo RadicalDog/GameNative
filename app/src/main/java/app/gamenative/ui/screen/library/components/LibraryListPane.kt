@@ -55,6 +55,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
+import app.gamenative.PrefManager
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -136,6 +137,24 @@ internal fun LibraryListPane(
                         )
                     }
 
+                    if (! isPortrait) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 30.dp, vertical = 18.dp)
+                        ) {
+                            LibrarySearchBar(
+                                state = state,
+                                listState = listState,
+                                onIsSearching = onIsSearching,
+                                onSearchQuery = onSearchQuery,
+                                onSettings = onSettings,
+                                onLogout = onLogout,
+                                onItemClick = onNavigate,
+                            )
+                        }
+                    }
+
                     // User profile button
                     Box(
                         modifier = Modifier
@@ -151,21 +170,23 @@ internal fun LibraryListPane(
                 }
             }
 
-            // Search bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                LibrarySearchBar(
-                    state = state,
-                    listState = listState,
-                    onIsSearching = onIsSearching,
-                    onSearchQuery = onSearchQuery,
-                    onSettings = onSettings,
-                    onLogout = onLogout,
-                    onItemClick = onNavigate,
-                )
+            if (isPortrait) {
+                // Search bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                ) {
+                    LibrarySearchBar(
+                        state = state,
+                        listState = listState,
+                        onIsSearching = onIsSearching,
+                        onSearchQuery = onSearchQuery,
+                        onSettings = onSettings,
+                        onLogout = onLogout,
+                        onItemClick = onNavigate,
+                    )
+                }
             }
 
             // Game list
@@ -246,6 +267,8 @@ internal fun LibraryListPane(
 @Preview(device = "spec:width=1920px,height=1080px,dpi=440") // Odin2 Mini
 @Composable
 private fun Preview_LibraryListPane() {
+    val context = LocalContext.current
+    PrefManager.init(context)
     val sheetState = rememberModalBottomSheetState()
     var state by remember {
         mutableStateOf(
