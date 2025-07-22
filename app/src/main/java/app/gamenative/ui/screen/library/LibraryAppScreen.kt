@@ -95,15 +95,11 @@ import com.winlator.container.ContainerData
 import com.winlator.xenvironment.ImageFsInstaller
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.EnumSet
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import app.gamenative.PluviaApp
-import app.gamenative.ui.enums.Orientation
-import app.gamenative.events.AndroidEvent
 import app.gamenative.service.SteamService.Companion.DOWNLOAD_COMPLETE_MARKER
 import app.gamenative.service.SteamService.Companion.getAppDirPath
 import com.posthog.PostHog
@@ -116,7 +112,6 @@ import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.border
 import app.gamenative.PrefManager
 import app.gamenative.service.DownloadService
 import java.nio.file.Paths
@@ -706,6 +701,20 @@ private fun AppScreenContent(
         scrollState.animateScrollTo(0)
     }
 
+    var appSizeOnDisk by remember { mutableStateOf("") }
+
+    var appSizeDisplayed by remember { mutableStateOf(true) }
+    // Fatass disk size call - needs to stop if we do something important like launch the app
+    LaunchedEffect(appSizeDisplayed) {
+        if (isInstalled) {
+            appSizeOnDisk = " ..."
+
+            DownloadService.getSizeOnDiskDisplay(appInfo.id) {
+                appSizeOnDisk = " ($it on disk)"
+            }
+        }
+    }
+
     // Check if an update is pending
     var isUpdatePending by remember(appInfo.id) { mutableStateOf(false) }
     LaunchedEffect(appInfo.id) {
@@ -890,7 +899,11 @@ private fun AppScreenContent(
                     Button(
                         enabled = installEnabled && isValidToDownload,
                         modifier = Modifier.weight(1f),
-                        onClick = onDownloadInstallClick,
+                        onClick = {
+                            // Stop heavy operations first
+                            appSizeDisplayed = false
+                            onDownloadInstallClick()
+                        },
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(16.dp)
@@ -1147,7 +1160,7 @@ private fun AppScreenContent(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = DownloadService.getSizeFromStoreDisplay(appInfo.id),
+                                        text = DownloadService.getSizeFromStoreDisplay(appInfo.id) + appSizeOnDisk,
                                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                                     )
                                 }

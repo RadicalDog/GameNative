@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,10 +57,13 @@ internal fun AppItem(
         SteamService.isAppInstalled(appInfo.appId)
     }
 
-    var appSize by remember { mutableStateOf("") }
+    var appSizeOnDisk by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        DownloadService.getSizeOnDiskDisplay(appInfo.appId) {  appSize = it }
+        if (isInstalled) {
+            appSizeOnDisk = "..."
+            DownloadService.getSizeOnDiskDisplay(appInfo.appId) {  appSizeOnDisk = it }
+        }
     }
 
     // Modern card-style item with gradient hover effect
@@ -158,7 +162,7 @@ internal fun AppItem(
                         )
 
                         Text(
-                            text = appSize,
+                            text = appSizeOnDisk,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

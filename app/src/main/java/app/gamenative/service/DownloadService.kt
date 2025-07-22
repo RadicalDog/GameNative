@@ -1,10 +1,8 @@
 package app.gamenative.service
 
 import app.gamenative.utils.StorageUtils
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 
@@ -51,22 +49,17 @@ object DownloadService {
         return StorageUtils.formatBinarySize(installBytes)
     }
 
-    fun getSizeOnDiskDisplay (appId: Int, setResult: (String) -> Unit) {
+    suspend fun getSizeOnDiskDisplay (appId: Int, setResult: (String) -> Unit) {
         // Outputs "3.76GiB" etc to the result lambda without locking up the main thread
-        if (SteamService.isAppInstalled(appId)) {
-            // Slow operation, so done asynchronously with a placeholder first
-            var appSizeText = "..."
-            setResult(appSizeText)
+        withContext(Dispatchers.IO) {
+            // Do it async
+            if (SteamService.isAppInstalled(appId)) {
+                val appSizeText = StorageUtils.formatBinarySize(
+                    StorageUtils.getFolderSize(SteamService.getAppDirPath(appId))
+                )
 
-            CoroutineScope(Dispatchers.IO).launch {
-                CoroutineScope(Dispatchers.IO).async {
-                    appSizeText = StorageUtils.formatBinarySize(
-                        StorageUtils.getFolderSize(SteamService.getAppDirPath(appId))
-                    )
-
-                    Timber.d("Finding $appId size $appSizeText")
-                    setResult(appSizeText)
-                }
+                Timber.d("Finding $appId size on disk $appSizeText")
+                setResult(appSizeText)
             }
         }
     }
