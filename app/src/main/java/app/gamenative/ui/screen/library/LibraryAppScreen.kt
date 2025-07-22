@@ -626,15 +626,12 @@ fun AppScreen(
                             AppMenuOption(
                                 AppOptionMenuType.Uninstall,
                                 onClick = {
-                                    val sizeOnDisk = StorageUtils.formatBinarySize(
-                                        StorageUtils.getFolderSize(SteamService.getAppDirPath(appInfo.id)),
-                                    )
                                     // TODO: show loading screen of delete progress
                                     msgDialogState = MessageDialogState(
                                         visible = true,
                                         type = DialogType.DELETE_APP,
                                         title = context.getString(R.string.delete_prompt_title),
-                                        message = "Are you sure you want to delete this app?\n\n\tSize on Disk: $sizeOnDisk",
+                                        message = "Are you sure you want to delete this app?",
                                         confirmBtnText = context.getString(R.string.delete_app),
                                         dismissBtnText = context.getString(R.string.cancel),
                                     )
