@@ -71,7 +71,7 @@ internal fun LibraryListPane(
     onLogout: () -> Unit,
     onNavigate: (Int) -> Unit,
     onSearchQuery: (String) -> Unit,
-    onSettings: () -> Unit,
+    onNavigateRoute: (String) -> Unit,
 ) {
     val expandedFab by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     val snackBarHost = remember { SnackbarHostState() }
@@ -144,7 +144,7 @@ internal fun LibraryListPane(
                             .padding(8.dp)
                     ) {
                         AccountButton(
-                            onSettings = onSettings,
+                            onNavigateRoute = onNavigateRoute,
                             onLogout = onLogout
                         )
                     }
@@ -162,7 +162,7 @@ internal fun LibraryListPane(
                     listState = listState,
                     onIsSearching = onIsSearching,
                     onSearchQuery = onSearchQuery,
-                    onSettings = onSettings,
+                    onNavigateRoute = onNavigateRoute,
                     onLogout = onLogout,
                     onItemClick = onNavigate,
                 )
@@ -277,7 +277,7 @@ private fun Preview_LibraryListPane() {
                 },
                 onIsSearching = { },
                 onSearchQuery = { },
-                onSettings = { },
+                onNavigateRoute = { },
                 onLogout = { },
                 onNavigate = { },
             )
