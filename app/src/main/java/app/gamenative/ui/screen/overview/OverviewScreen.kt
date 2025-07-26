@@ -6,7 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -16,6 +21,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
@@ -23,7 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.R
+import app.gamenative.service.AppSourceService
+import app.gamenative.service.AppSourceService.getAppSources
 import app.gamenative.ui.screen.PluviaScreen
+import app.gamenative.ui.screen.overview.components.AppSourceRow
 import app.gamenative.ui.theme.PluviaTheme
 
 @Composable
@@ -83,6 +94,14 @@ fun OverviewScreen(
                         stringResource(R.string.app_library),
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                     )
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items(AppSourceService.getAppSources()) { source ->
+                    AppSourceRow(appSource = source, onClick = {})
                 }
             }
         }
