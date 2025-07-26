@@ -48,7 +48,7 @@ internal fun LibrarySearchBar(
     listState: LazyListState,
     onIsSearching: (Boolean) -> Unit,
     onSearchQuery: (String) -> Unit,
-    onSettings: () -> Unit,
+    onNavigateRoute: (String) -> Unit,
     onLogout: () -> Unit,
     onItemClick: (Int) -> Unit,
 ) {
@@ -149,7 +149,7 @@ private fun Preview_LibrarySearchBar() {
                 listState = rememberLazyListState(),
                 onIsSearching = { },
                 onSearchQuery = { },
-                onSettings = { },
+                onNavigateRoute = { },
                 onLogout = { },
                 onItemClick = { },
             )
