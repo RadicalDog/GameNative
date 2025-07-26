@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Cyclone
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -103,6 +104,12 @@ fun ProfileDialog(
 
                 /* Action Buttons */
                 Spacer(modifier = Modifier.height(16.dp))
+                FilledTonalButton(modifier = Modifier.fillMaxWidth(), onClick = { onNavigateRoute(PluviaScreen.Overview.route) }) {
+                    Icon(imageVector = Icons.Default.Cyclone, contentDescription = null)
+                    Spacer(modifier = Modifier.size(ButtonDefaults.IconSize))
+                    Text(text = "Overview (Experimental)")
+                }
+
                 FilledTonalButton(modifier = Modifier.fillMaxWidth(), onClick = { onNavigateRoute(PluviaScreen.Settings.route) }) {
                     Icon(imageVector = Icons.Default.Settings, contentDescription = null)
                     Spacer(modifier = Modifier.size(ButtonDefaults.IconSize))

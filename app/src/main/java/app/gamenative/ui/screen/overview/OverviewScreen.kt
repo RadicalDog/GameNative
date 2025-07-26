@@ -1,62 +1,39 @@
 package app.gamenative.ui.screen.overview
 
 import android.content.res.Configuration
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.displayCutoutPadding
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
-import androidx.compose.material3.adaptive.layout.AnimatedPane
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
-import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
-import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowWidthSizeClass
 import app.gamenative.R
-import app.gamenative.ui.component.topbar.AccountButton
-import app.gamenative.ui.component.topbar.BackButton
+import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.theme.PluviaTheme
 
 @Composable
 fun OverviewScreen(
-    onLibraryClick: () -> Unit,
+    onNavigateRoute: (String) -> Unit,
 ) {
-    val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-
     Scaffold {
         Column(modifier = Modifier
             .padding(it)
-            .padding(12.dp),
+            .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Logo
@@ -77,7 +54,10 @@ fun OverviewScreen(
             FlowRow (horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     modifier = Modifier.weight(1f),
-                    onClick = {  },
+                    onClick = {
+                        // Todo: Filter to installed
+                        onNavigateRoute(PluviaScreen.Home.route)
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     contentPadding = PaddingValues(16.dp),
@@ -90,7 +70,10 @@ fun OverviewScreen(
 
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
-                    onClick = onLibraryClick,
+                    onClick = {
+                        // Todo: Filter to not only installed
+                        onNavigateRoute(PluviaScreen.Home.route)
+                    },
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
@@ -116,7 +99,7 @@ private fun Preview_DownloadsScreenContent() {
     PluviaTheme {
         Surface {
             OverviewScreen(
-                onLibraryClick = {},
+                onNavigateRoute = {},
             )
         }
     }

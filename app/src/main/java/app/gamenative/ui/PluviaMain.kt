@@ -49,6 +49,7 @@ import app.gamenative.ui.screen.HomeScreen
 import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.screen.chat.ChatScreen
 import app.gamenative.ui.screen.login.UserLoginScreen
+import app.gamenative.ui.screen.overview.OverviewScreen
 import app.gamenative.ui.screen.settings.SettingsScreen
 import app.gamenative.ui.screen.xserver.XServerScreen
 import app.gamenative.ui.theme.PluviaTheme
@@ -515,7 +516,14 @@ fun PluviaMain(
                 )
             }
 
-            /** Settings **/
+            /** Overview **/
+            composable(route = PluviaScreen.Overview.route) {
+                OverviewScreen (
+                    onNavigateRoute = {
+                        navController.navigate(it)
+                    },
+                )
+            }
 
             /** Settings **/
             composable(route = PluviaScreen.Settings.route) {
