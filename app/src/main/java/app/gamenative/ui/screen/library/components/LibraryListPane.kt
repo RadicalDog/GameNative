@@ -38,12 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.data.LibraryItem
-import app.gamenative.service.SteamService
 import app.gamenative.ui.data.LibraryState
 import app.gamenative.ui.enums.AppFilter
 import app.gamenative.ui.internal.fakeAppInfo
@@ -255,7 +253,6 @@ private fun Preview_LibraryListPane() {
                 appInfoList = List(15) { idx ->
                     val item = fakeAppInfo(idx)
                     LibraryItem(
-                        index = idx,
                         appId = item.id,
                         name = item.name,
                         iconHash = item.iconHash,

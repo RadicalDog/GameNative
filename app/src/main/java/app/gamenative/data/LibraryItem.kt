@@ -2,8 +2,10 @@ package app.gamenative.data
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import app.gamenative.Constants
+import app.gamenative.enums.AppType
 import app.gamenative.enums.Source
 import app.gamenative.service.AppSourceService
 
@@ -14,9 +16,6 @@ import app.gamenative.service.AppSourceService
     tableName = "app_base",
 )
 data class LibraryItem(
-    // Display index, not important
-    val index: Int = 0,
-
     /* What we save about each app regardless of source.
     Enough info to locate in the source DAO, not intended to duplicate.
 
@@ -50,8 +49,11 @@ data class LibraryItem(
     // Info needed from sync
     val reportedInstallSize: Long = 0, // in bytes, according to the source
     val familyShare: Boolean = false,
-    val type: Int = 0,
+    val type: AppType = AppType.game,
 ) {
+    // Display index, not important
+    @Ignore
+    var index: Int = 0
     val clientIconUrl: String
         get() = Constants.Library.ICON_URL + "$appId/$iconHash.ico"
 }

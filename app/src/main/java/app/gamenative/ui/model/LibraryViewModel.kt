@@ -11,6 +11,7 @@ import app.gamenative.data.LibraryItem
 import app.gamenative.data.SteamApp
 import app.gamenative.db.dao.SteamAppDao
 import app.gamenative.enums.Source
+import app.gamenative.service.DaoService
 import app.gamenative.service.DownloadService
 import app.gamenative.service.SteamService
 import app.gamenative.ui.data.LibraryState
@@ -44,12 +45,11 @@ class LibraryViewModel @Inject constructor(
     private var lastPageInCurrentFilter: Int = 0;
 
     // Complete and unfiltered app list
-    private var appList: List<SteamApp> = emptyList()
+    private var appList: List<LibraryItem> = emptyList()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            steamAppDao.getAllOwnedApps(
-                // ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
+            DaoService.db.appDao().getAllApps(
             ).collect { apps ->
                 Timber.tag("LibraryViewModel").d("Collecting ${apps.size} apps")
 
@@ -116,13 +116,13 @@ class LibraryViewModel @Inject constructor(
 
             var filteredList = appList
                 .asSequence()
-                .filter { item ->
-                    SteamService.familyMembers.ifEmpty {
-                        listOf(SteamService.userSteamId!!.accountID.toInt())
-                    }.map {
-                        item.ownerAccountId.contains(it)
-                    }.any()
-                }
+//                .filter { item ->
+//                    SteamService.familyMembers.ifEmpty {
+//                        listOf(SteamService.userSteamId!!.accountID.toInt())
+//                    }.map {
+//                        item.ownerAccountId.contains(it)
+//                    }.any()
+//                }
                 .filter { item ->
                     currentFilter.any { item.type == it }
                 }
@@ -130,7 +130,7 @@ class LibraryViewModel @Inject constructor(
                     if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
                         true
                     } else {
-                        item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt())
+                        !item.familyShare
                     }
                 }
                 .filter { item ->
@@ -142,15 +142,16 @@ class LibraryViewModel @Inject constructor(
                 }
                 .filter { item ->
                     if (currentState.appInfoSortType.contains(AppFilter.INSTALLED)) {
-                        downloadDirectoryApps.contains(SteamService.getAppDirName(item))
+                        downloadDirectoryApps.contains(item.downloadFolderName)
                     } else {
                         true
                     }
                 }
                 .sortedWith(
                     // Comes from DAO in alphabetical order
-                    compareByDescending<SteamApp> { downloadDirectoryApps.contains(SteamService.getAppDirName(it)) }
-                );
+                    compareByDescending<LibraryItem> { downloadDirectoryApps.contains(it.downloadFolderName) }
+                )
+
 
             // Total count for the current filter
             val totalFound = filteredList.count()
@@ -166,14 +167,8 @@ class LibraryViewModel @Inject constructor(
             // Map to UI model
             val filteredListPage = pagedSequence
                 .mapIndexed { idx, item ->
-                    LibraryItem(
-                        index = idx,
-                        appId = item.id,
-                        name = item.name,
-                        iconHash = item.clientIconHash,
-                        isShared = !item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt()),
-                        source = Source.STEAM,
-                    )
+                    item.index = idx
+                    item
                 }
                 .toList()
 

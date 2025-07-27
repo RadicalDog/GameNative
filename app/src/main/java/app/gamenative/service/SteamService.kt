@@ -148,6 +148,7 @@ import java.lang.NullPointerException
 import java.util.concurrent.TimeUnit
 import android.os.Environment
 import android.os.SystemClock
+import app.gamenative.service.appsource.SteamSource
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -2227,6 +2228,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                             }
                         }
                     }
+
+                    // Update library display
+                    SteamSource.syncAppsToDAO()
                 }
         }
 

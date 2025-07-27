@@ -140,7 +140,6 @@ private fun Preview_LibrarySearchBar() {
                     appInfoList = List(5) { idx ->
                         val item = fakeAppInfo(idx)
                         LibraryItem(
-                            index = idx,
                             appId = item.id,
                             name = item.name,
                             iconHash = item.iconHash,

@@ -211,7 +211,6 @@ private fun Preview_AppItem() {
                     items = List(5) { idx ->
                         val item = fakeAppInfo(idx)
                         LibraryItem(
-                            index = idx,
                             name = item.name,
                             appId = item.id,
                             source = Source.STEAM,

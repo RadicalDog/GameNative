@@ -36,15 +36,11 @@ object SteamSource : AppSourceInterface {
             val toBeAdded = mutableListOf<LibraryItem>()
             val toBeUpdated = mutableListOf<LibraryItem>()
 
-            var i = 0
             latestList.forEach() {
                 if (! mapRows.containsKey(it.appId)){
-                    if( i<5) {
-                        i++
-                        Timber.d(it.name)
-                        // New
-                        toBeAdded.add(it)
-                    }
+                    Timber.d(it.name)
+                    // New
+                    toBeAdded.add(it)
                 } else {
                     // Existing app
                     if (it != mapRows[it.appId]) {
@@ -82,7 +78,7 @@ object SteamSource : AppSourceInterface {
                 iconHash = steamApp.clientIconHash,
                 isShared = !steamApp.ownerAccountId.contains(steamUserId),
                 downloadFolderName = SteamService.getAppDirName(steamApp),
-                type = steamApp.contentType
+                type = steamApp.type
             )
             libraryItems.add(lib)
         }
