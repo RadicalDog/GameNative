@@ -33,7 +33,7 @@ data class LibraryItem(
     @PrimaryKey
     val uniqueID: String = AppSourceService.getUniqueId(source, appId),
 
-    val iconHash: String = "",
+    val iconHash: String = "", // More of an icon filename - url/[hash].jpg
     val isShared: Boolean = false,
 
     // Nonessential

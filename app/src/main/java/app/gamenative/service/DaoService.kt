@@ -10,7 +10,7 @@ object DaoService {
     private lateinit var applicationContext: Context;
 
     val db: PluviaDatabase by lazy {
-        Room.databaseBuilder(applicationContext, PluviaDatabase::class.java, "app").build()
+        Room.databaseBuilder(applicationContext, PluviaDatabase::class.java, "pluvia.db").build()
     }
 
     fun initialize(context: Context) {

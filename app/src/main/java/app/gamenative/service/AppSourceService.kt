@@ -8,10 +8,10 @@ import timber.log.Timber
 object AppSourceService {
     val appSources: Map<Source, AppSourceInterface> = mapOf(
     //    Source.CUSTOM to ...(),
-        Source.STEAM to SteamSource(),
+        Source.STEAM to SteamSource,
     )
 
-    fun getSource(source: Source): AppSourceInterface {
+    fun getSourceClass(source: Source): AppSourceInterface {
         if (appSources.containsKey(source)) {
             return appSources[source]!!
         } else {
