@@ -39,6 +39,7 @@ import app.gamenative.ui.enums.AppFilter
 import app.gamenative.ui.enums.Orientation
 import app.gamenative.events.AndroidEvent
 import app.gamenative.PluviaApp
+import app.gamenative.enums.Source
 import app.gamenative.ui.internal.fakeAppInfo
 import app.gamenative.ui.model.LibraryViewModel
 import app.gamenative.ui.screen.library.components.LibraryDetailPane
@@ -150,6 +151,7 @@ private fun Preview_LibraryScreenContent() {
                     LibraryItem(
                         index = idx,
                         appId = item.id,
+                        source = Source.STEAM,
                         name = item.name,
                         iconHash = item.iconHash,
                     )

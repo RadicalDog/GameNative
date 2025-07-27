@@ -2,6 +2,7 @@ package app.gamenative.ui.screen.library.components
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -55,6 +56,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
+import app.gamenative.enums.Source
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -114,7 +116,7 @@ internal fun LibraryListPane(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
                         Text(
@@ -257,6 +259,7 @@ private fun Preview_LibraryListPane() {
                         appId = item.id,
                         name = item.name,
                         iconHash = item.iconHash,
+                        source = Source.STEAM,
                     )
                 },
             ),

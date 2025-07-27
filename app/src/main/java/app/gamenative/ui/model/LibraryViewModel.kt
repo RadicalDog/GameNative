@@ -10,6 +10,7 @@ import app.gamenative.PrefManager
 import app.gamenative.data.LibraryItem
 import app.gamenative.data.SteamApp
 import app.gamenative.db.dao.SteamAppDao
+import app.gamenative.enums.Source
 import app.gamenative.service.DownloadService
 import app.gamenative.service.SteamService
 import app.gamenative.ui.data.LibraryState
@@ -171,6 +172,7 @@ class LibraryViewModel @Inject constructor(
                         name = item.name,
                         iconHash = item.clientIconHash,
                         isShared = !item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt()),
+                        source = Source.STEAM,
                     )
                 }
                 .toList()

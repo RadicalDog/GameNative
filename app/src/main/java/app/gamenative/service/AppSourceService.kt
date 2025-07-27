@@ -19,4 +19,8 @@ object AppSourceService {
             return appSources[Source.STEAM]!!
         }
     }
+
+    fun getUniqueId(source: Source, appId: Int): String {
+        return source.name+":"+appId
+    }
 }

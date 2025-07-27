@@ -3,11 +3,11 @@ package app.gamenative.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import app.gamenative.data.AppBase
 import app.gamenative.data.ChangeNumbers
 import app.gamenative.data.Emoticon
 import app.gamenative.data.FileChangeLists
 import app.gamenative.data.FriendMessage
+import app.gamenative.data.LibraryItem
 import app.gamenative.data.SteamApp
 import app.gamenative.data.SteamFriend
 import app.gamenative.data.SteamLicense
@@ -30,7 +30,7 @@ const val DATABASE_NAME = "pluvia.db"
 
 @Database(
     entities = [
-        AppBase::class,
+        LibraryItem::class,
         SteamApp::class,
         SteamLicense::class,
         SteamFriend::class,
@@ -39,7 +39,7 @@ const val DATABASE_NAME = "pluvia.db"
         FriendMessage::class,
         Emoticon::class,
     ],
-    version = 4,
+    version = 3,
     exportSchema = false, // Should export once stable.
 )
 @TypeConverters(

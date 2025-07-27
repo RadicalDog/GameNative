@@ -40,6 +40,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.platform.LocalContext
 import app.gamenative.PrefManager
+import app.gamenative.enums.Source
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -143,6 +144,7 @@ private fun Preview_LibrarySearchBar() {
                             appId = item.id,
                             name = item.name,
                             iconHash = item.iconHash,
+                            source = Source.STEAM,
                         )
                     },
                 ),

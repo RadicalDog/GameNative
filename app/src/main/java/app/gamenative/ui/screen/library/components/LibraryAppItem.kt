@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.data.LibraryItem
+import app.gamenative.enums.Source
 import app.gamenative.service.SteamService
 import app.gamenative.ui.internal.fakeAppInfo
 import app.gamenative.ui.theme.PluviaTheme
@@ -211,8 +212,9 @@ private fun Preview_AppItem() {
                         val item = fakeAppInfo(idx)
                         LibraryItem(
                             index = idx,
-                            appId = item.id,
                             name = item.name,
+                            appId = item.id,
+                            source = Source.STEAM,
                             iconHash = item.iconHash,
                             isShared = idx % 2 == 0,
                         )
