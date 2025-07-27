@@ -3,6 +3,7 @@ package app.gamenative
 import android.os.StrictMode
 import androidx.navigation.NavController
 import app.gamenative.events.EventDispatcher
+import app.gamenative.service.DaoService
 import com.google.android.play.core.splitcompat.SplitCompatApplication
 import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.widget.InputControlsView
@@ -43,6 +44,9 @@ class PluviaApp : SplitCompatApplication() {
 
         // Init our datastore preferences.
         PrefManager.init(this)
+
+        // Init DAO db
+        DaoService.initialize(this)
 
         // Initialize PostHog Analytics
         val postHogConfig = PostHogAndroidConfig(
