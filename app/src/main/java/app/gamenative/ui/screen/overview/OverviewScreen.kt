@@ -32,7 +32,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.R
 import app.gamenative.service.AppSourceService
-import app.gamenative.service.AppSourceService.getAppSources
 import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.screen.overview.components.AppSourceRow
 import app.gamenative.ui.theme.PluviaTheme
@@ -100,8 +99,8 @@ fun OverviewScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
             ) {
-                items(AppSourceService.getAppSources()) { source ->
-                    AppSourceRow(appSource = source, onClick = {})
+                items(AppSourceService.appSources.toList()) { source ->
+                    AppSourceRow(appSource = source.second, onClick = {})
                 }
             }
         }

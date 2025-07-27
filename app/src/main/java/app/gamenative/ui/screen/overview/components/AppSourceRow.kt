@@ -37,13 +37,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.data.AppSource
 import app.gamenative.service.AppSourceService
+import app.gamenative.service.appsource.AppSourceInterface
 import app.gamenative.ui.theme.PluviaTheme
 import app.gamenative.ui.util.ListItemImage
 
 @Composable
 internal fun AppSourceRow(
     modifier: Modifier = Modifier,
-    appSource: AppSource,
+    appSource: AppSourceInterface,
     onClick: () -> Unit,
 ) {
 
@@ -79,7 +80,7 @@ internal fun AppSourceRow(
                 ListItemImage(
                     modifier = Modifier.size(56.dp),
                     imageModifier = Modifier.clip(RoundedCornerShape(10.dp)),
-                    image = { appSource.clientIconUrl }
+                    image = { appSource.iconUrl }
                 )
             }
 
@@ -88,7 +89,7 @@ internal fun AppSourceRow(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = appSource.name,
+                    text = appSource.sourceName,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
@@ -133,7 +134,7 @@ internal fun AppSourceRow(
 
             // Sync button
             OutlinedIconButton(
-                onClick = onClick,
+                onClick = { appSource.syncAppsToDAO() },
                 colors = IconButtonDefaults.iconButtonColors(
                     contentColor = MaterialTheme.colorScheme.primary,
                     containerColor = MaterialTheme.colorScheme.background
@@ -160,8 +161,8 @@ private fun Preview_AppItem() {
             LazyColumn(
                 modifier = Modifier.padding(16.dp)
             ) {
-                items(AppSourceService.getAppSources()) { source ->
-                    AppSourceRow(appSource = source, onClick = {})
+                items(AppSourceService.appSources.toList()) { source ->
+                    AppSourceRow(appSource = source.second, onClick = {})
                 }
             }
         }

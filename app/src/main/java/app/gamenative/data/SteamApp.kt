@@ -14,6 +14,7 @@ import java.util.EnumSet
 
 @Entity("steam_app")
 data class SteamApp(
+    // ID is found in the store URL etc and assumed fixed
     @PrimaryKey val id: Int,
     @ColumnInfo("package_id")
     val packageId: Int = SteamService.INVALID_PKG_ID,

@@ -3,6 +3,7 @@ package app.gamenative.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import app.gamenative.data.AppBase
 import app.gamenative.data.ChangeNumbers
 import app.gamenative.data.Emoticon
 import app.gamenative.data.FileChangeLists
@@ -16,6 +17,7 @@ import app.gamenative.db.converters.FriendConverter
 import app.gamenative.db.converters.LicenseConverter
 import app.gamenative.db.converters.PathTypeConverter
 import app.gamenative.db.converters.UserFileInfoListConverter
+import app.gamenative.db.dao.AppDao
 import app.gamenative.db.dao.ChangeNumbersDao
 import app.gamenative.db.dao.EmoticonDao
 import app.gamenative.db.dao.FileChangeListsDao
@@ -28,6 +30,7 @@ const val DATABASE_NAME = "pluvia.db"
 
 @Database(
     entities = [
+        AppBase::class,
         SteamApp::class,
         SteamLicense::class,
         SteamFriend::class,
@@ -36,7 +39,7 @@ const val DATABASE_NAME = "pluvia.db"
         FriendMessage::class,
         Emoticon::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false, // Should export once stable.
 )
 @TypeConverters(
@@ -48,6 +51,8 @@ const val DATABASE_NAME = "pluvia.db"
     UserFileInfoListConverter::class,
 )
 abstract class PluviaDatabase : RoomDatabase() {
+
+    abstract fun appDao(): AppDao
 
     abstract fun steamLicenseDao(): SteamLicenseDao
 
