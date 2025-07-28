@@ -17,7 +17,7 @@ object SteamSource : AppSourceInterface {
     override val source = Source.STEAM
     override val sourceName = "Steam"
     override val lastSync = 0
-    override val iconUrl = ""
+    override val iconUrl = "https://store.steampowered.com/favicon.ico"
 
     var job: Job = Job()
 
