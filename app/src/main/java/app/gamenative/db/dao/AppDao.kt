@@ -26,6 +26,7 @@ interface AppDao {
 
     @Query(
         "SELECT * FROM app_base"
+        +" ORDER BY LOWER(name)"
     )
     fun getAllApps(): Flow<List<LibraryItem>>
 
