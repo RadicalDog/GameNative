@@ -119,6 +119,21 @@ object PrefManager {
             setPref(LAST_PICS_CHANGE_NUMBER, value)
         }
 
+    private val LAST_PICS_SYNC_TIME = longPreferencesKey("last_pics_sync_time")
+    var lastPICSSyncTime: Long
+        get() = getPref(LAST_PICS_SYNC_TIME, 0)
+        set(value) {
+            setPref(LAST_PICS_SYNC_TIME, value)
+        }
+
+    private val INTERVAL_PICS_SYNC = longPreferencesKey("interval_pics_sync")
+    var intervalPICSSync: Long // In milliseconds
+        get() = getPref(INTERVAL_PICS_SYNC, 7200000) // 2 hours
+        set(value) {
+            setPref(INTERVAL_PICS_SYNC, value)
+        }
+
+
     /* Container Default Settings */
     private val SCREEN_SIZE = stringPreferencesKey("screen_size")
     var screenSize: String

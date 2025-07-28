@@ -143,6 +143,7 @@ import java.lang.NullPointerException
 import android.os.SystemClock
 import app.gamenative.service.appsource.SteamSource
 import kotlinx.coroutines.ensureActive
+import java.time.Instant
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -2052,17 +2053,26 @@ class SteamService : Service(), IChallengeUrlChanged {
     private fun continuousPICSChangesChecker() = scope.launch {
         while (isActive && isLoggedIn) {
             // Initial delay before each check
-            delay(60.seconds)
-
-            PICSChangesCheck()
+            delay(5.seconds)
+            val now: Long = Instant.now().toEpochMilli()
+            if (PrefManager.lastPICSSyncTime < (now - PrefManager.intervalPICSSync)
+                || PrefManager.lastPICSSyncTime > now) {
+                // Worth it in case someone is messing with their system time
+                Timber.d("PICS syncing - synced at ${PrefManager.lastPICSSyncTime}, it is ${now}")
+                PICSChangesCheck()
+            } else {
+                Timber.d("PICS not needed - synced at ${PrefManager.lastPICSSyncTime}, it is ${now}")
+            }
         }
     }
+
     private fun PICSChangesCheck() {
         scope.launch {
             ensureActive()
 
             try {
-                val changesSince = _steamApps!!.picsGetChangesSince(
+                val steamApps = instance?._steamApps ?: return@launch
+                val changesSince = steamApps.picsGetChangesSince(
                     lastChangeNumber = PrefManager.lastPICSChangeNumber,
                     sendAppChangeList = true,
                     sendPackageChangelist = true,
@@ -2103,6 +2113,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                             Timber.d("onPicsChanges: Queueing ${chunk.size} app(s) for PICS")
                             appPicsChannel.send(chunk)
                         }
+                        // Record that we did this. "Good enough".
+                        PrefManager.lastPICSSyncTime = Instant.now().toEpochMilli()
                 }
 
                 // Process any package changes
