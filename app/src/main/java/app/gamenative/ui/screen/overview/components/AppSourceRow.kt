@@ -134,7 +134,7 @@ internal fun AppSourceRow(
 
             // Sync button
             OutlinedIconButton(
-                onClick = { appSource.syncAppsToDAO() },
+                onClick = { appSource.syncSource() },
                 colors = IconButtonDefaults.iconButtonColors(
                     contentColor = MaterialTheme.colorScheme.primary,
                     containerColor = MaterialTheme.colorScheme.background

@@ -21,6 +21,14 @@ object SteamSource : AppSourceInterface {
 
     var job: Job = Job()
 
+    override fun syncSource() {
+        if (SteamService.isConnected && SteamService.isLoggedIn) {
+            // With the way Steam's service specifically syncs, it is simpler to clear the last sync time
+            // than try to access the coroutines from here
+            PrefManager.lastPICSSyncTime = 0
+        }
+    }
+
     override fun syncAppsToDAO() {
         job.cancel()
         job = CoroutineScope(Dispatchers.IO).launch {

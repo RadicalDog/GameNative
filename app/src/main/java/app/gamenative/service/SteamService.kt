@@ -2058,10 +2058,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             if (PrefManager.lastPICSSyncTime < (now - PrefManager.intervalPICSSync)
                 || PrefManager.lastPICSSyncTime > now) {
                 // Worth it in case someone is messing with their system time
-                Timber.d("PICS syncing - synced at ${PrefManager.lastPICSSyncTime}, it is ${now}")
+                Timber.d("PICS syncing - last synced at ${PrefManager.lastPICSSyncTime}, it is ${now}")
                 PICSChangesCheck()
-            } else {
-                Timber.d("PICS not needed - synced at ${PrefManager.lastPICSSyncTime}, it is ${now}")
             }
         }
     }

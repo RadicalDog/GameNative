@@ -8,6 +8,11 @@ interface AppSourceInterface {
     val lastSync: Int
     val iconUrl: String
 
+    // Get data from source and add
+    fun syncSource () {
+        syncAppsToDAO()
+    }
+
     // Add data
     fun syncAppsToDAO ()
 
