@@ -1,5 +1,6 @@
 package app.gamenative.service.appsource
 
+import app.gamenative.PrefManager
 import app.gamenative.data.LibraryItem
 import app.gamenative.data.SteamApp
 import app.gamenative.enums.Source
@@ -16,20 +17,24 @@ object SteamSource : AppSourceInterface {
     override val lastSync = 0
     override val iconUrl = ""
 
-    var steamUserId: Int = 0
-
     override fun syncAppsToDAO() {
         CoroutineScope(Dispatchers.IO).launch {
             Timber.tag(sourceName).d("Syncing $source to AppDao")
 
+            val timeStarted = System.currentTimeMillis()
             // Get what's currently in the DB so we don't overwrite
             val existingRows = DaoService.db.appDao().getAllAppsFromSource(source)
             val mapRows: Map<Int, LibraryItem> = existingRows.associateBy{ it.appId }
-            Timber.d("Found ${existingRows.count()} existing rows")
+            Timber.d("Found ${existingRows.count()} existing rows (${System.currentTimeMillis() - timeStarted}ms)")
 
             val steamApps = DaoService.db.steamAppDao().getAllApps()
 
-            Timber.d("Counting ${steamApps.count()}")
+            if (PrefManager.steamUserAccountId == 0) {
+                Timber.tag("Sync").e("Cannot sync while Steam ID isn't valid")
+                return@launch
+            }
+
+            Timber.d("Checking ${steamApps.count()} Steam apps (${System.currentTimeMillis() - timeStarted}ms)")
             val latestList = steamAppsToGeneric(steamApps)
 
             // List to populate
@@ -60,15 +65,18 @@ object SteamSource : AppSourceInterface {
             }
 
             DaoService.db.appDao().insert(toBeAdded)
-            Timber.d("Inserted ${toBeAdded.count()} apps")
+            Timber.d("Inserted ${toBeAdded.count()} apps (${System.currentTimeMillis() - timeStarted}ms)")
 
             DaoService.db.appDao().update(toBeUpdated)
-            Timber.d("Updated ${toBeUpdated.count()} apps")
-
+            Timber.d("Updated ${toBeUpdated.count()} apps (${System.currentTimeMillis() - timeStarted}ms)")
         }
     }
 
     fun steamAppsToGeneric(steamApps: List<SteamApp>): List<LibraryItem> {
+        if (PrefManager.steamUserAccountId == 0) {
+            Timber.tag("Sync").e("Cannot save family share status while Steam ID isn't valid")
+            return emptyList()
+        }
         val libraryItems = mutableListOf<LibraryItem>()
         steamApps.forEach() { steamApp ->
             val lib = LibraryItem(
@@ -76,7 +84,7 @@ object SteamSource : AppSourceInterface {
                 appId = steamApp.id,
                 source = Source.STEAM,
                 iconHash = steamApp.clientIconHash,
-                isShared = !steamApp.ownerAccountId.contains(steamUserId),
+                isShared = !steamApp.ownerAccountId.contains(PrefManager.steamUserAccountId),
                 downloadFolderName = SteamService.getAppDirName(steamApp),
                 type = steamApp.type
             )

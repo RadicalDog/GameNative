@@ -142,7 +142,7 @@ class UserLoginViewModel : ViewModel() {
         val twoFactorMethod = prevState.lastTwoFactorMethod
         val eventProps = mutableMapOf("method" to method)
         twoFactorMethod?.let { eventProps["2fa_method"] = it }
-        
+
         if (it.loginResult == LoginResult.Success) {
             PostHog.capture(event = "login_success", properties = eventProps)
         } else if (it.loginResult == LoginResult.Failed) {

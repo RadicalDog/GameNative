@@ -17,7 +17,6 @@ import app.gamenative.enums.AppTheme
 import app.gamenative.ui.enums.AppFilter
 import app.gamenative.ui.enums.HomeDestination
 import app.gamenative.ui.enums.Orientation
-import app.gamenative.Constants
 import com.materialkolor.PaletteStyle
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.container.Container
@@ -395,9 +394,6 @@ object PrefManager {
             }
         }
 
-    /**
-     * Get or Set the last known Persona State. See [EPersonaState]
-     */
     private val LIBRARY_FILTER = intPreferencesKey("library_filter")
     var libraryFilter: EnumSet<AppFilter>
         get() {
@@ -408,6 +404,9 @@ object PrefManager {
             setPref(LIBRARY_FILTER, AppFilter.toFlags(value))
         }
 
+    /**
+     * Get or Set the last known Persona State. See [EPersonaState]
+     */
     private val PERSONA_STATE = intPreferencesKey("persona_state")
     var personaState: EPersonaState
         get() {
@@ -416,6 +415,13 @@ object PrefManager {
         }
         set(value) {
             setPref(PERSONA_STATE, value.code())
+        }
+
+    private val STEAM_USER_ACCOUNT_ID = intPreferencesKey("steam_user_account_id")
+    var steamUserAccountId: Int
+        get() = getPref(STEAM_USER_ACCOUNT_ID, 0)
+        set(value) {
+            setPref(STEAM_USER_ACCOUNT_ID, value)
         }
 
     private val ALLOWED_ORIENTATION = intPreferencesKey("allowed_orientation")
