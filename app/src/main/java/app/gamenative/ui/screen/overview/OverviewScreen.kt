@@ -100,7 +100,7 @@ fun OverviewScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(AppSourceService.appSources.toList()) { source ->
-                    AppSourceRow(appSource = source.second, onClick = {})
+                    AppSourceRow(appSource = source.second, onNavigateRoute = onNavigateRoute)
                 }
             }
         }

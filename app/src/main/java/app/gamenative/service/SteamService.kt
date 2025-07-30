@@ -145,7 +145,6 @@ import kotlinx.coroutines.ensureActive
 import app.gamenative.enums.Marker
 import app.gamenative.utils.MarkerUtils
 import app.gamenative.service.appsource.SteamSource
-import kotlinx.coroutines.ensureActive
 import java.time.Instant
 
 @AndroidEntryPoint
@@ -1139,7 +1138,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 //                )
 //            }
 
-            PrefManager.username = username
+            PrefManager.steamUsername = username
 
             if ((password != null && rememberSession) || refreshToken != null) {
                 if (accessToken != null) {
@@ -1362,7 +1361,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         private fun performLogOffDuties() {
-            val username = PrefManager.username
+            val username = PrefManager.steamUsername
 
             clearUserData()
 
@@ -1728,11 +1727,11 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         var isAutoLoggingIn = false
 
-        if (PrefManager.username.isNotEmpty() && PrefManager.refreshToken.isNotEmpty()) {
+        if (PrefManager.steamUsername.isNotEmpty() && PrefManager.refreshToken.isNotEmpty()) {
             isAutoLoggingIn = true
 
             login(
-                username = PrefManager.username,
+                username = PrefManager.steamUsername,
                 refreshToken = PrefManager.refreshToken,
                 rememberSession = true,
             )
@@ -1846,7 +1845,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
 
-        val event = SteamEvent.LogonEnded(PrefManager.username, _loginResult)
+        val event = SteamEvent.LogonEnded(PrefManager.steamUsername, _loginResult)
         PluviaApp.events.emit(event)
     }
 

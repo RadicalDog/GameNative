@@ -10,7 +10,13 @@ interface AppSourceInterface {
 
     // Get data from source and add
     fun syncSource () {
-        syncAppsToDAO()
+        if (isReadyToSync()) {
+            syncAppsToDAO()
+        }
+    }
+    // This is also useful info for the UI
+    fun isReadyToSync(): Boolean {
+        return false
     }
 
     // Add data
@@ -18,4 +24,16 @@ interface AppSourceInterface {
 
     // Install and run
     fun preLaunchFunctions () {}
+
+    // Get info
+    fun getUsername(): String {
+        return ""
+    }
+    fun getConnectedText(): String {
+        return "Not connected"
+    }
+    fun getLastSyncTime(): Long? {
+        return null
+    }
+    var sourceStatusText: String?
 }

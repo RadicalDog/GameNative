@@ -18,17 +18,21 @@ object SteamSource : AppSourceInterface {
     override val sourceName = "Steam"
     override val lastSync = 0
     override val iconUrl = "https://store.steampowered.com/favicon.ico"
+    override var sourceStatusText: String? = null
 
     var job: Job = Job()
 
     override fun syncSource() {
-        if (SteamService.isConnected && SteamService.isLoggedIn) {
+        if (isReadyToSync()) {
             // With the way Steam's service specifically syncs, it is simpler to clear the last sync time
             // than try to access the coroutines from here
             PrefManager.lastPICSSyncTime = 0
         }
     }
 
+    override fun isReadyToSync(): Boolean {
+        return (SteamService.isConnected && SteamService.isLoggedIn)
+    }
     override fun syncAppsToDAO() {
         job.cancel()
         job = CoroutineScope(Dispatchers.IO).launch {
@@ -115,5 +119,25 @@ object SteamSource : AppSourceInterface {
 
     override fun preLaunchFunctions() {
         // Swap steam DLLs
+    }
+
+    override fun getUsername(): String {
+        return PrefManager.steamUsername
+    }
+
+    override fun getConnectedText(): String {
+        if (isReadyToSync()) {
+            return "Connected"
+        } else if (! SteamService.isLoggedIn) {
+            return "Not logged in"
+        } else if(! SteamService.isConnected) {
+            return "Disconnected (has login)e"
+        } else {
+            return "Disconnected"
+        }
+    }
+
+    override fun getLastSyncTime(): Long {
+        return PrefManager.lastPICSSyncTime
     }
 }

@@ -138,7 +138,7 @@ object SteamUtils {
         val imageFs = ImageFs.find(context)
         val vdfFileText = SteamService.getLoginUsersVdfOauth(
             steamId64 = SteamService.userSteamId?.convertToUInt64().toString(),
-            account = PrefManager.username,
+            account = PrefManager.steamUsername,
             refreshToken = PrefManager.refreshToken,
             accessToken = PrefManager.accessToken      // may be blank
         )
@@ -151,7 +151,7 @@ object SteamUtils {
             val steamExe = "$steamRoot\\steam.exe"
             val hkcu = "Software\\Valve\\Steam"
             WineRegistryEditor(userRegFile).use { reg ->
-                reg.setStringValue("Software\\Valve\\Steam", "AutoLoginUser", PrefManager.username)
+                reg.setStringValue("Software\\Valve\\Steam", "AutoLoginUser", PrefManager.steamUsername)
                 reg.setStringValue("Software\\Valve\\Steam", "RememberPassword", "1")
                 reg.setStringValue(hkcu, "SteamExe", steamExe)
                 reg.setStringValue(hkcu, "SteamPath", steamRoot)

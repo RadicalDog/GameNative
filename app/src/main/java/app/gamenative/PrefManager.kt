@@ -368,7 +368,7 @@ object PrefManager {
         }
 
     private val USER_NAME = stringPreferencesKey("user_name")
-    var username: String
+    var steamUsername: String
         get() = getPref(USER_NAME, "")
         set(value) {
             setPref(USER_NAME, value)

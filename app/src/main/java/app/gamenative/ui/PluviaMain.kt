@@ -433,14 +433,12 @@ fun PluviaMain(
 
         NavHost(
             navController = navController,
-            startDestination = PluviaScreen.LoginUser.route,
+            startDestination = PluviaScreen.Overview.route,
         ) {
-            /** Login **/
             /** Login **/
             composable(route = PluviaScreen.LoginUser.route) {
                 UserLoginScreen()
             }
-            /** Library, Downloads, Friends **/
             /** Library, Downloads, Friends **/
             composable(
                 route = PluviaScreen.Home.route,
@@ -475,8 +473,6 @@ fun PluviaMain(
             }
 
             /** Full Screen Chat **/
-
-            /** Full Screen Chat **/
             composable(
                 route = "chat/{id}",
                 arguments = listOf(
@@ -495,8 +491,6 @@ fun PluviaMain(
                     },
                 )
             }
-
-            /** Game Screen **/
 
             /** Game Screen **/
             composable(route = PluviaScreen.XServer.route) {
