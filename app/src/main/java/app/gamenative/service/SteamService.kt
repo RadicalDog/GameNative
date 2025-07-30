@@ -2109,13 +2109,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         scope.launch {
             ensureActive()
 
-            PICSChangesCheck()
-        }
-    }
-    private fun PICSChangesCheck() {
-        scope.launch {
-            ensureActive()
-
             try {
                 val steamApps = instance?._steamApps ?: return@launch
                 val changesSince = steamApps.picsGetChangesSince(
