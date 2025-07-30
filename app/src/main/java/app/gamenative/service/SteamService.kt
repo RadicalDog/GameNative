@@ -141,6 +141,9 @@ import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.lang.NullPointerException
 import android.os.SystemClock
+import kotlinx.coroutines.ensureActive
+import app.gamenative.enums.Marker
+import app.gamenative.utils.MarkerUtils
 import app.gamenative.service.appsource.SteamSource
 import kotlinx.coroutines.ensureActive
 import java.time.Instant
@@ -232,26 +235,23 @@ class SteamService : Service(), IChallengeUrlChanged {
         /**
          * Default timeout to use when making requests
          */
-        var requestTimeout = 10.seconds
+        var requestTimeout = 30.seconds
 
         /**
          * Default timeout to use when reading the response body
          */
-        var responseTimeout = 60.seconds
+        var responseTimeout = 120.seconds
 
         private val PROTOCOL_TYPES = EnumSet.of(ProtocolTypes.WEB_SOCKET)
 
         private var instance: SteamService? = null
 
-        const val DOWNLOAD_COMPLETE_MARKER = ".download_complete"
-
         private val downloadJobs = ConcurrentHashMap<Int, DownloadInfo>()
 
         /** Returns true if there is an incomplete download on disk (no complete marker). */
         fun hasPartialDownload(appId: Int): Boolean {
-            val dir = File(getAppDirPath(appId))
-            val marker = File(dir, DOWNLOAD_COMPLETE_MARKER)
-            return dir.exists() && !marker.exists()
+            val dirPath = getAppDirPath(appId)
+            return File(dirPath).exists() && !MarkerUtils.hasMarker(dirPath, Marker.DOWNLOAD_COMPLETE_MARKER)
         }
 
         private var syncInProgress: Boolean = false
@@ -294,6 +294,20 @@ class SteamService : Service(), IChallengeUrlChanged {
         private val externalAppStagingPath: String
             get() {
                 return Paths.get(PrefManager.externalStoragePath, "Steam", "steamapps", "staging").pathString
+            }
+
+        val defaultStoragePath: String
+            get() {
+                return if (PrefManager.useExternalStorage && File(PrefManager.externalStoragePath).exists()) {
+                    // We still have an SD card file structure as expected
+                    Timber.i("External storage path is " + PrefManager.externalStoragePath)
+                    PrefManager.externalStoragePath
+                } else {
+                    if (instance != null) {
+                        return instance!!.dataDir.path
+                    }
+                    return ""
+                }
             }
 
         val defaultAppInstallPath: String
@@ -363,16 +377,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun isAppInstalled(appId: Int): Boolean {
-            val dir = File(getAppDirPath(appId))
-            val markerFile = File(dir, DOWNLOAD_COMPLETE_MARKER)
-            val appDownloadInfo = getAppDownloadInfo(appId)
-            val isNotDownloading = appDownloadInfo == null || appDownloadInfo.getProgress() >= 1f
-            val appDirPath = Paths.get(getAppDirPath(appId))
-            val pathExists = Files.exists(appDirPath)
-
-            // logD("isDownloading: $isNotDownloading && pathExists: $pathExists && appDirPath: $appDirPath")
-
-            return isNotDownloading && pathExists && markerFile.exists()
+            return MarkerUtils.hasMarker(getAppDirPath(appId), Marker.DOWNLOAD_COMPLETE_MARKER)
         }
 
         fun getAppDlc(appId: Int): Map<Int, DepotInfo> {
@@ -616,8 +621,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun deleteApp(appId: Int): Boolean {
             // Remove any download-complete marker
-            val marker = File(getAppDirPath(appId), DOWNLOAD_COMPLETE_MARKER)
-            if (marker.exists()) marker.delete()
+            MarkerUtils.removeMarker(getAppDirPath(appId), Marker.DOWNLOAD_COMPLETE_MARKER)
+            // Remove from DB
             with(instance!!) {
                 scope.launch {
                     db.withTransaction {
@@ -797,14 +802,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                         }.awaitAll()
                     }
                     downloadJobs.remove(appId)
-                    // Write complete marker on disk
-                    try {
-                        val dir = File(getAppDirPath(appId))
-                        dir.mkdirs()
-                        File(dir, DOWNLOAD_COMPLETE_MARKER).createNewFile()
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to write download complete marker for $appId")
-                    }
+                    // Write download complete marker on disk
+                    MarkerUtils.addMarker(getAppDirPath(appId), Marker.DOWNLOAD_COMPLETE_MARKER)
                 })
             }
 
@@ -1069,6 +1068,48 @@ class SteamService : Service(), IChallengeUrlChanged {
             val filesModified: List<UserFileInfo>,
             val filesCreated: List<UserFileInfo>,
         )
+
+        /**
+         * loginusers.vdf writer for the OAuth-style refresh-token flow introduced in 2024.
+         *
+         * @param steamId64    64-bit SteamID of the logged-in user
+         * @param account      AccountName (same as you passed to logOn / poll result)
+         * @param refreshToken Long-lived token you get from AuthSession / QR / credentials
+         * @param accessToken  Optional – short-lived access token, Steam ignores it if absent
+         * @param personaName  What the client shows in the drop-down; defaults to AccountName
+         */
+        internal fun getLoginUsersVdfOauth(
+            steamId64: String,
+            account: String,
+            refreshToken: String,
+            accessToken: String? = null,
+            personaName: String = account,
+        ): String {
+            val epoch = System.currentTimeMillis() / 1_000
+
+            val vdf = buildString {
+                appendLine("\"users\"")
+                appendLine("{")
+                appendLine("    \"$steamId64\"")
+                appendLine("    {")
+                appendLine("        \"AccountName\"          \"$account\"")
+                appendLine("        \"PersonaName\"          \"$personaName\"")
+                appendLine("        \"RememberPassword\"     \"1\"")
+                appendLine("        \"AllowAutoLogin\"       \"1\"")
+                appendLine("        \"MostRecent\"           \"1\"")
+                appendLine("        \"Timestamp\"            \"$epoch\"")
+                appendLine("        \"AuthType\"             \"2\"")
+                accessToken?.let {
+                    appendLine("        \"AccessToken\"          \"$it\"")
+                }
+                appendLine("        \"RefreshToken\"         \"$refreshToken\"")
+                appendLine("    }")
+                appendLine("    \"currentuser\"              \"$steamId64\"")
+                appendLine("}")
+            }
+
+            return vdf;
+        }
 
         private fun login(
             username: String,
@@ -2064,6 +2105,13 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
     }
 
+    private fun PICSChangesCheck() {
+        scope.launch {
+            ensureActive()
+
+            PICSChangesCheck()
+        }
+    }
     private fun PICSChangesCheck() {
         scope.launch {
             ensureActive()

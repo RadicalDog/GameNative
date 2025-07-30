@@ -21,6 +21,7 @@ import com.materialkolor.PaletteStyle
 import com.winlator.xserver.Window
 import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.AppProcessInfo
+import kotlinx.coroutines.Dispatchers
 import java.nio.file.Paths
 import javax.inject.Inject
 import kotlin.io.path.name
@@ -34,6 +35,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlinx.coroutines.Job
+import app.gamenative.utils.ContainerUtils
+import kotlinx.coroutines.async
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -193,15 +196,27 @@ class MainViewModel @Inject constructor(
     }
 
     fun launchApp(context: Context, appId: Int) {
-        SteamUtils.replaceSteamApi(context, appId)
+        // Check if we should use real Steam or replace Steam API
+        val container = ContainerUtils.getContainer(context, appId)
+
         // Show booting splash before launching the app
         viewModelScope.launch {
             setShowBootingSplash(true)
             PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation))
-            
+
+            val apiJob = viewModelScope.async(Dispatchers.IO) {
+                if (container.isLaunchRealSteam()) {
+                    SteamUtils.restoreSteamApi(context, appId)
+                } else {
+                    SteamUtils.replaceSteamApi(context, appId)
+                }
+            }
+
             // Small delay to ensure the splash screen is visible before proceeding
             delay(100)
-            
+
+            apiJob.await()
+
             _uiEvent.send(MainUiEvent.LaunchApp)
         }
     }
@@ -215,13 +230,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onWindowMapped(window: Window, appId: Int) {
+    fun onWindowMapped(context: Context, window: Window, appId: Int) {
         viewModelScope.launch {
             // Hide the booting splash when a window is mapped
             bootingSplashTimeoutJob?.cancel()
             bootingSplashTimeoutJob = null
             setShowBootingSplash(false)
-            
+
             SteamService.getAppInfoOf(appId)?.let { appInfo ->
                 // TODO: this should not be a search, the app should have been launched with a specific launch config that we then use to compare
                 val launchConfig = SteamService.getWindowsLaunchInfos(appId).firstOrNull {
@@ -251,7 +266,14 @@ class MainViewModel @Inject constructor(
                     } while (parentWindow != null)
 
                     GameProcessInfo(appId = appId, processes = processes).let {
-                        SteamService.notifyRunningProcesses(it)
+                        // Only notify Steam if we're not using real Steam
+                        // When launchRealSteam is true, let the real Steam client handle the "game is running" notification
+                        val container = ContainerUtils.getContainer(context, appId)
+                        if (!container.isLaunchRealSteam()) {
+                            SteamService.notifyRunningProcesses(it)
+                        } else {
+                            Timber.i("Skipping Steam process notification - real Steam will handle this")
+                        }
                     }
                 }
             }
@@ -264,7 +286,7 @@ class MainViewModel @Inject constructor(
             bootingSplashTimeoutJob?.cancel()
             bootingSplashTimeoutJob = null
             setShowBootingSplash(false)
-            
+
             // You could also show an error dialog here if needed
             Timber.e("Game launch error: $error")
         }

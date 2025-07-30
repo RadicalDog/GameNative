@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import app.gamenative.Constants
 import app.gamenative.PluviaApp
 import app.gamenative.PrefManager
 import app.gamenative.R
@@ -35,8 +34,6 @@ import app.gamenative.ui.data.XServerState
 import app.gamenative.utils.ContainerUtils
 import com.posthog.PostHog
 import com.winlator.alsaserver.ALSAClient
-import com.winlator.box86_64.rc.RCFile
-import com.winlator.box86_64.rc.RCManager
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.contentdialog.NavigationDialog
@@ -52,6 +49,7 @@ import com.winlator.core.KeyValueSet
 import com.winlator.core.OnExtractFileListener
 import com.winlator.core.ProcessHelper
 import com.winlator.core.TarCompressorUtils
+import com.winlator.core.Win32AppWorkarounds
 import com.winlator.core.WineInfo
 import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineStartMenuCreator
@@ -116,7 +114,7 @@ fun XServerScreen(
     bootToContainer: Boolean,
     navigateBack: () -> Unit,
     onExit: () -> Unit,
-    onWindowMapped: ((Window) -> Unit)? = null,
+    onWindowMapped: ((Context, Window) -> Unit)? = null,
     onWindowUnmapped: ((Window) -> Unit)? = null,
     onGameLaunchError: ((String) -> Unit)? = null,
 ) {
@@ -185,6 +183,8 @@ fun XServerScreen(
         Timber.i("Remembering xServerView as $result")
         result
     }
+
+    var win32AppWorkarounds: Win32AppWorkarounds? by remember { mutableStateOf(null) }
 
     var isKeyboardVisible = false
     var areControlsVisible = false
@@ -367,6 +367,11 @@ fun XServerScreen(
                 frameLayout.addView(PluviaApp.touchpadView)
                 PluviaApp.touchpadView?.setMoveCursorToTouchpoint(PrefManager.getBoolean("move_cursor_to_touchpoint", false))
                 getxServer().winHandler = WinHandler(getxServer(), this)
+                win32AppWorkarounds = Win32AppWorkarounds(
+                    getxServer(),
+                    taskAffinityMask,
+                    taskAffinityMaskWoW64,
+                )
                 touchMouse = TouchMouse(getxServer())
                 keyboard = Keyboard(getxServer())
                 if (!bootToContainer) {
@@ -418,8 +423,8 @@ fun XServerScreen(
                                         "\n\thasParent: ${window.parent != null}" +
                                         "\n\tchildrenSize: ${window.children.size}",
                             )
-                            assignTaskAffinity(window, getxServer().winHandler, taskAffinityMask, taskAffinityMaskWoW64)
-                            onWindowMapped?.invoke(window)
+                            win32AppWorkarounds?.applyWindowWorkarounds(window)
+                            onWindowMapped?.invoke(context, window)
                         }
 
                         override fun onUnmapWindow(window: Window) {
@@ -722,6 +727,9 @@ private fun assignTaskAffinity(
     val className = window.getClassName()
     val processAffinity = if (window.isWoW64()) taskAffinityMaskWoW64 else taskAffinityMask
 
+    if (className.equals("steam.exe")) {
+        return;
+    }
     if (processId > 0) {
         winHandler.setProcessAffinity(processId, processAffinity)
     } else if (!className.isEmpty()) {
@@ -811,7 +819,6 @@ private fun setupXEnvironment(
     envVars.put("MESA_DEBUG", "silent")
     envVars.put("MESA_NO_ERROR", "1")
     envVars.put("WINEPREFIX", imageFs.wineprefix)
-    envVars.put("WINE_DO_NOT_UPDATE_IF_TABLE", "1")
     envVars.put("WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER", "1")
     if (container.isShowFPS){
         envVars.put("DXVK_HUD", "fps,frametimes")
@@ -851,7 +858,7 @@ private fun setupXEnvironment(
         if (enableWineDebug && wineDebugChannels.isNotEmpty())
             "+" + wineDebugChannels.replace(",", ",+")
         else
-            "-all"
+            "-all",
     )
     // capture debug output to file if either Wine or Box86/64 logging is enabled
     if (enableWineDebug || enableBox86Logs) {
@@ -944,20 +951,9 @@ private fun setupXEnvironment(
         )
     } else if (xServerState.value.graphicsDriver == "vortek") {
         Timber.i("Adding VortekRendererComponent to Environment")
-        val options2: VortekRendererComponent.Options? = VortekRendererComponent.Options.fromKeyValueSet(KeyValueSet(container.getGraphicsDriverConfig()))
-        val vortekRendererComponent: VortekRendererComponent =
-            VortekRendererComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VORTEK_SERVER_PATH), options2)
-        environment.addComponent(vortekRendererComponent)
+        val options2: VortekRendererComponent.Options? = VortekRendererComponent.Options.fromKeyValueSet(context, KeyValueSet(container.getGraphicsDriverConfig()))
+        environment.addComponent(VortekRendererComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VORTEK_SERVER_PATH), options2, context))
     }
-
-    val manager: RCManager = RCManager(context)
-    manager.loadRCFiles()
-    val rcfileId: Int = container.getRCFileId()
-    val rcfile: RCFile? = manager.getRcfile(rcfileId)
-    val file = File(container.rootDir, ".box64rc")
-    val str = if (rcfile == null) "" else rcfile.generateBox86_64rc()
-    FileUtils.writeString(file, str)
-    envVars.put("BOX64_RCFILE", file.getAbsolutePath())
 
     guestProgramLauncherComponent.envVars = envVars
     guestProgramLauncherComponent.setTerminationCallback { status ->
@@ -1018,7 +1014,7 @@ private fun getWineStartCommand(
     bootToContainer: Boolean,
     appLaunchInfo: LaunchInfo?,
     envVars: EnvVars,
-    guestProgramLauncherComponent: GuestProgramLauncherComponent
+    guestProgramLauncherComponent: GuestProgramLauncherComponent,
 ): String {
     val tempDir = File(container.getRootDir(), ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
@@ -1027,31 +1023,39 @@ private fun getWineStartCommand(
     val args = if (bootToContainer || appLaunchInfo == null) {
         "\"wfm.exe\""
     } else {
-        val appDirPath = SteamService.getAppDirPath(appId)
-        var executablePath = ""
-        if (container.executablePath.isNotEmpty()) {
-            executablePath = container.executablePath
+        // Check if we should launch through real Steam
+        if (container.isLaunchRealSteam()) {
+            // Launch Steam with the applaunch parameter to start the game
+            "\"C:\\\\Program Files (x86)\\\\Steam\\\\steam.exe\" -silent -vgui -no-browser -tcp " +
+                    "-nobigpicture -nobootstrapupdate -skipinitialbootstrap -nofriendsui -nochatui -nointro -applaunch $appId"
         } else {
-            executablePath = SteamService.getInstalledExe(appId)
-            container.executablePath = executablePath
-            container.saveData()
-        }
-        val executableDir = appDirPath + "/" + executablePath.substringBeforeLast("/", "")
-        guestProgramLauncherComponent.workingDir = File(executableDir);
-        Timber.i("Working directory is ${executableDir}")
+            // Original logic for direct game launch
+            val appDirPath = SteamService.getAppDirPath(appId)
+            var executablePath = ""
+            if (container.executablePath.isNotEmpty()) {
+                executablePath = container.executablePath
+            } else {
+                executablePath = SteamService.getInstalledExe(appId)
+                container.executablePath = executablePath
+                container.saveData()
+            }
+            val executableDir = appDirPath + "/" + executablePath.substringBeforeLast("/", "")
+            guestProgramLauncherComponent.workingDir = File(executableDir);
+            Timber.i("Working directory is ${executableDir}")
 
-        Timber.i("Final exe path is " + executablePath)
-        val drives = container.drives
-        val driveIndex = drives.indexOf(appDirPath)
-        // greater than 1 since there is the drive character and the colon before the app dir path
-        val drive = if (driveIndex > 1) {
-            drives[driveIndex - 2]
-        } else {
-            Timber.e("Could not locate game drive")
-            'D'
+            Timber.i("Final exe path is " + executablePath)
+            val drives = container.drives
+            val driveIndex = drives.indexOf(appDirPath)
+            // greater than 1 since there is the drive character and the colon before the app dir path
+            val drive = if (driveIndex > 1) {
+                drives[driveIndex - 2]
+            } else {
+                Timber.e("Could not locate game drive")
+                'D'
+            }
+            envVars.put("WINEPATH", "$drive:/${appLaunchInfo.workingDir}")
+            "\"$drive:/${executablePath}\""
         }
-        envVars.put("WINEPATH", "$drive:/${appLaunchInfo.workingDir}")
-        "\"$drive:/${executablePath}\""
     }
 
     return "winhandler.exe $args"
@@ -1148,7 +1152,7 @@ private fun unpackExecutableFile(
                             rootDir.path + "/usr/local/bin/box64",
                             "wine",
                             "z:\\\\generate_interfaces_file.exe",
-                            "A:\\" + relDllPath.replace('/', '\\')
+                            "A:\\" + relDllPath.replace('/', '\\'),
                         )
                         Timber.i("Running generate_interfaces_file " + Arrays.toString(shellCommandArray))
 
@@ -1157,7 +1161,7 @@ private fun unpackExecutableFile(
                         val genProc = Runtime.getRuntime().exec(
                             shellCommandArray,
                             shellCommandEnvVars.toStringArray(),
-                            imageFs.getRootDir()
+                            imageFs.getRootDir(),
                         )
                         val genReader     = BufferedReader(InputStreamReader(genProc.inputStream))
                         val genErrReader  = BufferedReader(InputStreamReader(genProc.errorStream))
@@ -1172,7 +1176,7 @@ private fun unpackExecutableFile(
                                 Files.copy(
                                     origSteamInterfaces.toPath(),
                                     finalSteamInterfaces.toPath(),
-                                    StandardCopyOption.REPLACE_EXISTING
+                                    StandardCopyOption.REPLACE_EXISTING,
                                 )
                                 Timber.i("Copied steam_interfaces.txt to ${finalSteamInterfaces.absolutePath}")
                             } catch (ioe: IOException) {
@@ -1688,11 +1692,10 @@ private fun extractGraphicsDriverFiles(
         envVars.put("VORTEK_SERVER_PATH", imageFs.getRootDir().getPath() + UnixSocketConfig.VORTEK_SERVER_PATH)
         Timber.i("dxwrapper is " + dxwrapper)
         if (dxwrapper.contains("dxvk")) {
-            dxwrapperConfig.put("constantBufferRangeCheck", "1")
-            DXVKHelper.setEnvVars(context, dxwrapperConfig, envVars)
+            envVars.put("WINE_D3D_CONFIG", "renderer=gdi")
         }
         if (changed) {
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/vortek-1.0.tzst", rootDir)
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/vortek-2.0.tzst", rootDir)
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/zink-22.2.5.tzst", rootDir)
         }
     }
