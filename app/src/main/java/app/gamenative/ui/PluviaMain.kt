@@ -64,7 +64,6 @@ import java.util.Date
 import java.util.EnumSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.reflect.KFunction2
@@ -106,9 +105,9 @@ fun PluviaMain(
                 }
 
                 MainViewModel.MainUiEvent.OnLoggedOut -> {
-                    // Pop stack and go back to login.
+                    // Pop stack and go back to Overview.
                     navController.popBackStack(
-                        route = PluviaScreen.LoginUser.route,
+                        route = PluviaScreen.Overview.route,
                         inclusive = false,
                         saveState = false,
                     )
@@ -117,8 +116,10 @@ fun PluviaMain(
                 is MainViewModel.MainUiEvent.OnLogonEnded -> {
                     when (event.result) {
                         LoginResult.Success -> {
-                            Timber.i("Navigating to library")
-                            navController.navigate(PluviaScreen.Home.route)
+                            if(navController.currentDestination?.route == PluviaScreen.LoginUser.route) {
+                                Timber.i("Login success - navigating to overview")
+                                navController.navigate(PluviaScreen.Overview.route)
+                            }
 
                             // If a crash happen, lets not ask for a tip yet.
                             // Instead, ask the user to contribute their issues to be addressed.
@@ -202,9 +203,6 @@ fun PluviaMain(
                 Timber.d("Steam not connected - attempt")
                 isConnecting = true
                 context.startForegroundService(Intent(context, SteamService::class.java))
-            }
-            if (SteamService.isLoggedIn && state.currentScreen == PluviaScreen.LoginUser) {
-                navController.navigate(PluviaScreen.Home.route)
             }
         }
     }
@@ -441,7 +439,7 @@ fun PluviaMain(
             }
             /** Library, Downloads, Friends **/
             composable(
-                route = PluviaScreen.Home.route,
+                route = PluviaScreen.Library.route,
                 deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" }),
             ) {
                 HomeScreen(

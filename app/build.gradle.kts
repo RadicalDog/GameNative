@@ -30,6 +30,9 @@ android {
     ndkVersion = "22.1.7171670"
 
     signingConfigs {
+        getByName("debug") {
+            storeFile = file("/home/deck/.android/debug.keystore")
+        }
         create("pluvia") {
             if (keystoreProperties != null) {
                 storeFile = file(keystoreProperties["storeFile"].toString())

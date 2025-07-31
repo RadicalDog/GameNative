@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -21,9 +19,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
@@ -66,7 +61,7 @@ fun OverviewScreen(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         // Todo: Filter to installed
-                        onNavigateRoute(PluviaScreen.Home.route)
+                        onNavigateRoute(PluviaScreen.Library.route)
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -82,7 +77,7 @@ fun OverviewScreen(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         // Todo: Filter to not only installed
-                        onNavigateRoute(PluviaScreen.Home.route)
+                        onNavigateRoute(PluviaScreen.Library.route)
                     },
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
