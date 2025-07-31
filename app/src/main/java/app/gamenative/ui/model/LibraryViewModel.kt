@@ -127,6 +127,14 @@ class LibraryViewModel @Inject constructor(
                     currentFilter.any { item.type == it }
                 }
                 .filter { item ->
+                    if (PrefManager.steamUserAccountId == 0 && item.source == Source.STEAM) {
+                        // Logged out of Steam explicitly, so hide Steam apps
+                        false
+                    } else {
+                        true
+                    }
+                }
+                .filter { item ->
                     if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
                         true
                     } else {

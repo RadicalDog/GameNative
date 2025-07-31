@@ -148,12 +148,12 @@ object SteamSource : AppSourceInterface {
     override fun getConnectedText(): String {
         if (isReadyToSync()) {
             return "Connected"
+        } else if(! SteamService.isConnected) {
+            return "Disconnected"
         } else if (! SteamService.isLoggedIn) {
             return "Not logged in"
-        } else if(! SteamService.isConnected) {
-            return "Disconnected (has login)e"
         } else {
-            return "Disconnected"
+            return "Disconnect unknown"
         }
     }
 
