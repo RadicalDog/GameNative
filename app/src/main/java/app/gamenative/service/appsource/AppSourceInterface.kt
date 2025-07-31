@@ -1,6 +1,8 @@
 package app.gamenative.service.appsource
 
+import androidx.compose.runtime.MutableState
 import app.gamenative.enums.Source
+import app.gamenative.service.AppSourceService
 
 interface AppSourceInterface {
     val source: Source
@@ -32,8 +34,12 @@ interface AppSourceInterface {
     fun getConnectedText(): String {
         return "Not connected"
     }
+    fun setLastSyncTime(timestamp: Long) {
+        lastSyncTimeHumanReadable.value = AppSourceService.timestampToHumanReadable(timestamp)
+    }
     fun getLastSyncTime(): Long? {
         return null
     }
-    var sourceStatusText: String?
+    val sourceMostRecentStatusText: MutableState<String>
+    val lastSyncTimeHumanReadable: MutableState<String>
 }

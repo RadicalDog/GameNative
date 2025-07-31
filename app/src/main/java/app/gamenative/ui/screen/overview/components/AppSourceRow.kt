@@ -26,8 +26,10 @@ import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -121,23 +123,21 @@ internal fun AppSourceRow(
 
                 // Last sync
                 // Ideally, should update when clicked & finished...
-                var syncText = ""
-                if (appSource.getLastSyncTime() != null) {
-                    syncText = "Last sync: " + AppSourceService.timestampToHumanReadable(appSource.getLastSyncTime())
-                }
-                Text(
-                    text = syncText,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (appSource.sourceStatusText != null) {
+                var syncText by appSource.lastSyncTimeHumanReadable
+                if (syncText.isNotEmpty()) {
                     Text(
-                        text = appSource.sourceStatusText!!,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "Last sync: $syncText",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                var statusText by appSource.sourceMostRecentStatusText
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
             if (appSource.isReadyToSync()) {

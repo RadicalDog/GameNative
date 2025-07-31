@@ -1,14 +1,18 @@
 package app.gamenative.service.appsource
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import app.gamenative.PrefManager
 import app.gamenative.data.LibraryItem
 import app.gamenative.data.SteamApp
 import app.gamenative.enums.Source
+import app.gamenative.service.AppSourceService
 import app.gamenative.service.DaoService
 import app.gamenative.service.SteamService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -18,15 +22,25 @@ object SteamSource : AppSourceInterface {
     override val sourceName = "Steam"
     override val lastSync = 0
     override val iconUrl = "https://store.steampowered.com/favicon.ico"
-    override var sourceStatusText: String? = null
+
+    // Displays what is happening to user. No problem to update it loads - users love seeing things progress
+    override var sourceMostRecentStatusText: MutableState<String> = mutableStateOf("")
+    override var lastSyncTimeHumanReadable: MutableState<String> = mutableStateOf("")
 
     var job: Job = Job()
+
+    init {
+        lastSyncTimeHumanReadable.value = AppSourceService.timestampToHumanReadable(getLastSyncTime())
+    }
 
     override fun syncSource() {
         if (isReadyToSync()) {
             // With the way Steam's service specifically syncs, it is simpler to clear the last sync time
             // than try to access the coroutines from here
-            PrefManager.lastPICSSyncTime = 0
+            sourceMostRecentStatusText.value = "Sync requested"
+            setLastSyncTime(0)
+        } else {
+            sourceMostRecentStatusText.value = "Not able to sync"
         }
     }
 
@@ -49,20 +63,22 @@ object SteamSource : AppSourceInterface {
 
             if (PrefManager.steamUserAccountId == 0) {
                 Timber.tag("Sync $sourceName").e("Cannot sync while Steam ID isn't valid")
+                sourceMostRecentStatusText.value = "Cannot sync while Steam ID isn't valid"
                 return@launch
             }
 
             Timber.tag("Sync $sourceName").d("Checking ${steamApps.count()} Steam apps (${System.currentTimeMillis() - timeStarted}ms)")
+            sourceMostRecentStatusText.value = "Getting existing Steam apps"
             val latestList = steamAppsToGeneric(steamApps)
             ensureActive()
 
             // List to populate
             val toBeAdded = mutableListOf<LibraryItem>()
             val toBeUpdated = mutableListOf<LibraryItem>()
+            sourceMostRecentStatusText.value = "Comparing new to existing Steam apps"
 
             latestList.forEach() {
                 if (! mapRows.containsKey(it.appId)){
-                    Timber.d(it.name)
                     // New
                     toBeAdded.add(it)
                 } else {
@@ -78,8 +94,6 @@ object SteamSource : AppSourceInterface {
                         )
 
                         toBeUpdated.add(existingApp)
-
-                        Timber.tag("Sync $sourceName").d("Could update ${existingApp!!.name}")
                     }
                 }
             }
@@ -87,10 +101,16 @@ object SteamSource : AppSourceInterface {
             ensureActive()
             DaoService.db.appDao().insert(toBeAdded)
             Timber.tag("Sync $sourceName").d("Inserted ${toBeAdded.count()} apps (${System.currentTimeMillis() - timeStarted}ms)")
+            sourceMostRecentStatusText.value = "Inserted ${toBeAdded.count()} apps"
 
             ensureActive()
             DaoService.db.appDao().update(toBeUpdated)
             Timber.tag("Sync $sourceName").d("Updated ${toBeUpdated.count()} apps (${System.currentTimeMillis() - timeStarted}ms)")
+            sourceMostRecentStatusText.value = "Inserted ${toBeAdded.count()} apps, updated ${toBeUpdated.count()} apps"
+
+            delay(5000)
+
+            sourceMostRecentStatusText.value = ""
         }
     }
 
@@ -137,6 +157,10 @@ object SteamSource : AppSourceInterface {
         }
     }
 
+    override fun setLastSyncTime(timestamp: Long) {
+        PrefManager.lastPICSSyncTime = timestamp
+        super.setLastSyncTime(timestamp)
+    }
     override fun getLastSyncTime(): Long {
         return PrefManager.lastPICSSyncTime
     }

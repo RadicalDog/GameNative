@@ -145,6 +145,7 @@ import kotlinx.coroutines.ensureActive
 import app.gamenative.enums.Marker
 import app.gamenative.utils.MarkerUtils
 import app.gamenative.service.appsource.SteamSource
+import app.gamenative.service.appsource.SteamSource.sourceMostRecentStatusText
 import java.time.Instant
 
 @AndroidEntryPoint
@@ -1637,7 +1638,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun connectToSteam() {
-        CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             // this call errors out if run on the main thread
             steamClient!!.connect()
 
@@ -2094,11 +2095,14 @@ class SteamService : Service(), IChallengeUrlChanged {
         while (isActive && isLoggedIn) {
             // Initial delay before each check
             delay(5.seconds)
+
             val now: Long = Instant.now().toEpochMilli()
             if (PrefManager.lastPICSSyncTime < (now - PrefManager.intervalPICSSync)
                 || PrefManager.lastPICSSyncTime > now) {
                 // Worth it in case someone is messing with their system time
                 Timber.d("PICS syncing - last synced at ${PrefManager.lastPICSSyncTime}, it is ${now}")
+
+                sourceMostRecentStatusText.value = "Product information requested"
                 PICSChangesCheck()
             }
         }
@@ -2149,10 +2153,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                         .forEach { chunk ->
                             ensureActive()
                             Timber.d("onPicsChanges: Queueing ${chunk.size} app(s) for PICS")
+                            sourceMostRecentStatusText.value = "Queueing ${chunk.size} app(s) for product information request"
                             appPicsChannel.send(chunk)
                         }
-                        // Record that we did this. "Good enough".
-                        PrefManager.lastPICSSyncTime = Instant.now().toEpochMilli()
                 }
 
                 // Process any package changes
@@ -2177,10 +2180,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                             .chunked(MAX_PICS_BUFFER)
                             .forEach { chunk ->
                                 Timber.d("onPicsChanges: Queueing ${chunk.size} package(s) for PICS")
+                                sourceMostRecentStatusText.value = "Queueing ${chunk.size} package(s) for product information request"
                                 packagePicsChannel.send(chunk)
                             }
                     }
                 }
+
+                // Record that we did this. "Good enough".
+                SteamSource.setLastSyncTime(Instant.now().toEpochMilli())
             } catch (e: NullPointerException) {
                 Timber.w("No lastPICSChangeNumber, skipping")
             }
@@ -2257,6 +2264,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     "\n\tReceived PICS result of ${picsCallback.apps.size} app(s)." +
                                     "\n\tReceived PICS result of ${picsCallback.packages.size} package(s).",
                         )
+
+                        sourceMostRecentStatusText.value = "Received PICS result of ${picsCallback.apps.size} app(s) & ${picsCallback.packages.size} package(s)."
 
                         ensureActive()
                         val steamAppsMap = picsCallback.apps.values.mapNotNull { app ->
