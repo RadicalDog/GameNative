@@ -33,7 +33,6 @@ data class LibraryItem(
     val uniqueID: String = AppSourceService.getUniqueId(source, appId),
 
     val iconHash: String = "", // More of an icon filename - url/[hash].jpg
-    val isShared: Boolean = false,
 
     // Nonessential
     val lastPlayed: Int = 0,
@@ -48,7 +47,7 @@ data class LibraryItem(
 
     // Info needed from sync
     val reportedInstallSize: Long = 0, // in bytes, according to the source
-    val familyShare: Boolean = false,
+    val isShared: Boolean = false, // Family share
     val type: AppType = AppType.game,
 ) {
     // Display index, not important

@@ -130,7 +130,7 @@ class LibraryViewModel @Inject constructor(
                     if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
                         true
                     } else {
-                        !item.familyShare
+                        !item.isShared
                     }
                 }
                 .filter { item ->
