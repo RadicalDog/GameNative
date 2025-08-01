@@ -2252,6 +2252,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                         packages = emptyList(),
                     ).await()
 
+                    ensureActive()
+
                     callback.results.forEachIndexed { index, picsCallback ->
                         Timber.d(
                             "onPicsProduct: ${index + 1} of ${callback.results.size}" +
@@ -2340,12 +2342,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                             }
                         }
 
-                        // TODO: This could be an issue. (Stalling)
-                        steamApps.picsGetAccessTokens(
+                        val tokens = steamApps.picsGetAccessTokens(
                             appIds = queue,
                             packageIds = emptyList(),
                         ).await()
-                            .appTokens
+
+                        ensureActive()
+
+                        tokens.appTokens
                             .forEach { (key, value) ->
                                 appTokens[key] = value
                             }
