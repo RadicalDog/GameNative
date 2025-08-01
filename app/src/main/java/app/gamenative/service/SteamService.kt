@@ -851,7 +851,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     ?: gameProcess.processes.firstOrNull()?.processId
                                     ?: 0
 
-                                val userAccountId = userSteamId!!.accountID.toInt()
+                                val userAccountId = PrefManager.steamUserAccountId
                                 GamePlayedInfo(
                                     gameId = gameProcess.appId.toLong(),
                                     processId = processId,
@@ -915,6 +915,12 @@ class SteamService : Service(), IChallengeUrlChanged {
             PrefManager.clientId?.let { clientId ->
                 instance?.let { steamInstance ->
                     getAppInfoOf(appId)?.let { appInfo ->
+
+                        if (steamInstance._steamCloud == null) {
+                            // e.g. offline
+                            syncResult = PostSyncInfo(SyncResult.CloudAccessIssue)
+                        }
+
                         steamInstance._steamCloud?.let { steamCloud ->
                             val postSyncInfo = SteamAutoCloud.syncUserFiles(
                                 appInfo = appInfo,
