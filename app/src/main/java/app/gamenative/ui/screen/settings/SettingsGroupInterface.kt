@@ -46,7 +46,6 @@ fun SettingsGroupInterface(
     var openAppPaletteDialog by rememberSaveable { mutableStateOf(false) }
 
     var openStartScreenDialog by rememberSaveable { mutableStateOf(false) }
-    var startScreenOption by rememberSaveable(openStartScreenDialog) { mutableStateOf(PrefManager.startScreen) }
 
     // Load Steam regions from assets
     val steamRegionsMap: Map<Int, String> = remember {

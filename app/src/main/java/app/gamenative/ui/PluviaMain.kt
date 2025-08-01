@@ -47,9 +47,9 @@ import app.gamenative.ui.components.BootingSplash
 import app.gamenative.ui.enums.DialogType
 import app.gamenative.ui.enums.Orientation
 import app.gamenative.ui.model.MainViewModel
-import app.gamenative.ui.screen.HomeScreen
 import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.screen.chat.ChatScreen
+import app.gamenative.ui.screen.library.HomeLibraryScreen
 import app.gamenative.ui.screen.login.UserLoginScreen
 import app.gamenative.ui.screen.overview.OverviewScreen
 import app.gamenative.ui.screen.settings.SettingsScreen
@@ -64,6 +64,7 @@ import java.util.Date
 import java.util.EnumSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.reflect.KFunction2
@@ -218,7 +219,7 @@ fun PluviaMain(
     LaunchedEffect(isConnecting) {
         if (isConnecting) {
             Timber.d("Started connecting, will timeout in 10s")
-            kotlinx.coroutines.delay(10000)
+            delay(10000)
             Timber.d("Timeout reached, isSteamConnected=${state.isSteamConnected}")
             if (!state.isSteamConnected) {
                 isConnecting = false
@@ -453,7 +454,7 @@ fun PluviaMain(
                 route = PluviaScreen.Library.route,
                 deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" }),
             ) {
-                HomeScreen(
+                HomeLibraryScreen(
                     onClickPlay = { launchAppId, asContainer ->
                         viewModel.setLaunchedAppId(launchAppId)
                         viewModel.setBootToContainer(asContainer)
@@ -465,12 +466,6 @@ fun PluviaMain(
                             setMessageDialogState = { msgDialogState = it },
                             onSuccess = viewModel::launchApp,
                         )
-                    },
-                    onClickExit = {
-                        PluviaApp.events.emit(AndroidEvent.EndProcess)
-                    },
-                    onChat = {
-                        navController.navigate(PluviaScreen.Chat.route(it))
                     },
                     onNavigateRoute = {
                         navController.navigate(it)
