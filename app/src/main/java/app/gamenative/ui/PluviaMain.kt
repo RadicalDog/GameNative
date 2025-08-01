@@ -163,19 +163,10 @@ fun PluviaMain(
         if (!state.hasLaunched) {
             viewModel.setHasLaunched(true)
 
-            Timber.i("Creating on destination changed listener")
+            Timber.i("Start Orientator")
 
-            PluviaApp.onDestinationChangedListener = NavController.OnDestinationChangedListener { _, destination, _ ->
-                Timber.i("onDestinationChanged to ${destination.route}")
-                // in order not to trigger the screen changed launch effect
-                viewModel.setCurrentScreen(destination.route)
-            }
             PluviaApp.events.emit(AndroidEvent.StartOrientator)
-        } else {
-            navController.removeOnDestinationChangedListener(PluviaApp.onDestinationChangedListener!!)
         }
-
-        navController.addOnDestinationChangedListener(PluviaApp.onDestinationChangedListener!!)
     }
 
     // TODO merge to VM?
