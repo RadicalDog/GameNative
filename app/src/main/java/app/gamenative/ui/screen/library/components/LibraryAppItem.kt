@@ -211,13 +211,15 @@ private fun Preview_AppItem() {
                 items(
                     items = List(5) { idx ->
                         val item = fakeAppInfo(idx)
-                        LibraryItem(
+                        val li = LibraryItem(
                             name = item.name,
                             appId = item.id,
                             source = Source.STEAM,
                             iconHash = item.iconHash,
                             isShared = idx % 2 == 0,
                         )
+                        li.index = idx
+                        li
                     },
                     itemContent = {
                         AppItem(appInfo = it, onClick = {})
