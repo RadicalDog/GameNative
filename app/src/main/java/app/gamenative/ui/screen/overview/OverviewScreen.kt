@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,15 +22,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import app.gamenative.PrefManager
 import app.gamenative.R
 import app.gamenative.service.AppSourceService
 import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.screen.overview.components.AppSourceRow
 import app.gamenative.ui.theme.PluviaTheme
+import app.gamenative.utils.ContainerUtils
+import timber.log.Timber
 
 @Composable
 fun OverviewScreen(
@@ -54,6 +59,24 @@ fun OverviewScreen(
                     )
                 )
             )
+
+            // Test container link
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    Timber.d("Current container: ${ContainerUtils.currentContainer}")
+                    onNavigateRoute(PluviaScreen.XServer.route)
+                },
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text(
+                    "Container",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
 
             // Library buttons
             FlowRow (horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -109,6 +132,8 @@ fun OverviewScreen(
 ) // Odin2 Mini
 @Composable
 private fun Preview_DownloadsScreenContent() {
+    val context = LocalContext.current
+    PrefManager.init(context)
     PluviaTheme {
         Surface {
             OverviewScreen(
