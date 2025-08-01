@@ -270,31 +270,22 @@ class SteamService : Service(), IChallengeUrlChanged {
             private set
 
         private val serverListPath: String
-            get() = Paths.get(instance!!.cacheDir.path, "server_list.bin").pathString
+            get() = Paths.get(DownloadService.getInternalStorageBase(),"server_list.bin").pathString
 
         private val depotManifestsPath: String
-            get() = Paths.get(instance!!.dataDir.path, "Steam", "depot_manifests.zip").pathString
+            get() = Paths.get(DownloadService.getInternalStorageBase(), "Steam", "depot_manifests.zip").pathString
 
         val internalAppInstallPath: String
-            get() {
-                if (instance != null) {
-                    return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
-                }
-                return ""
-            }
+            get() = Paths.get(DownloadService.getInternalStorageBase(), "Steam", "steamapps", "common").pathString
         val externalAppInstallPath: String
             get() {
                 return Paths.get(PrefManager.externalStoragePath, "Steam", "steamapps", "common").pathString
             }
 
         private val internalAppStagingPath: String
-            get() {
-                return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
-            }
+            get() = Paths.get(DownloadService.getInternalStorageBase(), "Steam", "steamapps", "staging").pathString
         private val externalAppStagingPath: String
-            get() {
-                return Paths.get(PrefManager.externalStoragePath, "Steam", "steamapps", "staging").pathString
-            }
+            get() = Paths.get(PrefManager.externalStoragePath, "Steam", "steamapps", "staging").pathString
 
         val defaultStoragePath: String
             get() {
@@ -303,10 +294,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     Timber.i("External storage path is " + PrefManager.externalStoragePath)
                     PrefManager.externalStoragePath
                 } else {
-                    if (instance != null) {
-                        return instance!!.dataDir.path
-                    }
-                    return ""
+                    return DownloadService.getInternalStorageBase()
                 }
             }
 

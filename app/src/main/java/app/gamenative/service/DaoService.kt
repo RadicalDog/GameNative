@@ -16,4 +16,9 @@ object DaoService {
     fun initialize(context: Context) {
         applicationContext = context.applicationContext
     }
+
+    fun getContext(): Context {
+        // Helpful for other things that need a context, since this object is initialised at launch and carries on
+        return applicationContext
+    }
 }

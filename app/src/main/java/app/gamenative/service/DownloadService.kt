@@ -63,4 +63,8 @@ object DownloadService {
             }
         }
     }
+
+    fun getInternalStorageBase(): String {
+        return DaoService.getContext().dataDir.path + "/files"
+    }
 }
