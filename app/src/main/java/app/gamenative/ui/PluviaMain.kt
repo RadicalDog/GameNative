@@ -283,13 +283,25 @@ fun PluviaMain(
         }
 
         DialogType.SYNC_FAIL -> {
+            onConfirmClick = {
+                preLaunchApp(
+                    context = context,
+                    appId = state.launchedAppId,
+                    preferredSave = SaveLocation.Local,
+                    setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                    setLoadingProgress = viewModel::setLoadingDialogProgress,
+                    setMessageDialogState = setMessageDialogState,
+                    onSuccess = viewModel::launchApp,
+                    ignoreCloudSaveIssues = true,
+                )
+                msgDialogState = MessageDialogState(false)
+            }
             onDismissClick = {
                 setMessageDialogState(MessageDialogState(false))
             }
             onDismissRequest = {
                 setMessageDialogState(MessageDialogState(false))
             }
-            onConfirmClick = null
         }
 
         DialogType.PENDING_UPLOAD_IN_PROGRESS -> {
@@ -544,6 +556,7 @@ fun preLaunchApp(
     setLoadingProgress: (Float) -> Unit,
     setMessageDialogState: (MessageDialogState) -> Unit,
     onSuccess: KFunction2<Context, Int, Unit>,
+    ignoreCloudSaveIssues: Boolean = false,
 ) {
     setLoadingDialogVisible(true)
     // TODO: add a way to cancel
@@ -595,20 +608,27 @@ fun preLaunchApp(
                 )
             }
 
+            SyncResult.CloudAccessIssue,
             SyncResult.InProgress,
             SyncResult.UnknownFail,
             SyncResult.DownloadFail,
             SyncResult.UpdateFail,
             -> {
-                setMessageDialogState(
-                    MessageDialogState(
-                        visible = true,
-                        type = DialogType.SYNC_FAIL,
-                        title = "Sync Error",
-                        message = "Failed to sync save files: ${postSyncInfo.syncResult}. Please restart app.",
-                        dismissBtnText = "Ok",
-                    ),
-                )
+                if (ignoreCloudSaveIssues) {
+                    // Carry on and launch
+                    onSuccess(context, appId)
+                } else {
+                    setMessageDialogState(
+                        MessageDialogState(
+                            visible = true,
+                            type = DialogType.SYNC_FAIL,
+                            title = "Sync Error",
+                            message = "Failed to sync save files: ${postSyncInfo.syncResult}. Continuing can cause sync conflicts and lost data.",
+                            dismissBtnText = "Cancel",
+                            confirmBtnText = "Launch anyway"
+                        ),
+                    )
+                }
             }
 
             SyncResult.PendingOperations -> {
