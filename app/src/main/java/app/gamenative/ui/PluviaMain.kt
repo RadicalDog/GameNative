@@ -287,7 +287,6 @@ fun PluviaMain(
                 preLaunchApp(
                     context = context,
                     appId = state.launchedAppId,
-                    preferredSave = SaveLocation.Local,
                     setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
                     setLoadingProgress = viewModel::setLoadingDialogProgress,
                     setMessageDialogState = setMessageDialogState,
@@ -623,7 +622,7 @@ fun preLaunchApp(
                             visible = true,
                             type = DialogType.SYNC_FAIL,
                             title = "Sync Error",
-                            message = "Failed to sync save files: ${postSyncInfo.syncResult}. Continuing can cause sync conflicts and lost data.",
+                            message = "Failed to sync save files: ${postSyncInfo.syncResult.text}.\n\nContinuing can cause sync conflicts and lost data.",
                             dismissBtnText = "Cancel",
                             confirmBtnText = "Launch anyway"
                         ),
