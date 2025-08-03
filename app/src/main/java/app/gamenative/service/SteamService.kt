@@ -916,52 +916,52 @@ class SteamService : Service(), IChallengeUrlChanged {
                 instance?.let { steamInstance ->
                     getAppInfoOf(appId)?.let { appInfo ->
 
-                        if (steamInstance._steamCloud == null) {
+                        if (steamInstance._steamCloud == null || ! DownloadService.isInternetConnected()) {
                             // e.g. offline
                             syncResult = PostSyncInfo(SyncResult.CloudAccessIssue)
-                        }
+                        } else {
+                            steamInstance._steamCloud?.let { steamCloud ->
+                                val postSyncInfo = SteamAutoCloud.syncUserFiles(
+                                    appInfo = appInfo,
+                                    clientId = clientId,
+                                    steamInstance = steamInstance,
+                                    steamCloud = steamCloud,
+                                    preferredSave = preferredSave,
+                                    parentScope = parentScope,
+                                    prefixToPath = prefixToPath,
+                                ).await()
 
-                        steamInstance._steamCloud?.let { steamCloud ->
-                            val postSyncInfo = SteamAutoCloud.syncUserFiles(
-                                appInfo = appInfo,
-                                clientId = clientId,
-                                steamInstance = steamInstance,
-                                steamCloud = steamCloud,
-                                preferredSave = preferredSave,
-                                parentScope = parentScope,
-                                prefixToPath = prefixToPath,
-                            ).await()
+                                postSyncInfo?.let { info ->
+                                    syncResult = info
 
-                            postSyncInfo?.let { info ->
-                                syncResult = info
-
-                                if (info.syncResult == SyncResult.Success || info.syncResult == SyncResult.UpToDate) {
-                                    Timber.i(
-                                        "Signaling app launch:\n\tappId: %d\n\tclientId: %s\n\tosType: %s",
-                                        appId,
-                                        PrefManager.clientId,
-                                        EOSType.AndroidUnknown,
-                                    )
-
-                                    val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
-                                        appId = appId,
-                                        clientId = clientId,
-                                        machineName = SteamUtils.getMachineName(steamInstance),
-                                        ignorePendingOperations = ignorePendingOperations,
-                                        osType = EOSType.AndroidUnknown,
-                                    ).await()
-
-                                    if (pendingRemoteOperations.isNotEmpty() && !ignorePendingOperations) {
-                                        syncResult = PostSyncInfo(
-                                            syncResult = SyncResult.PendingOperations,
-                                            pendingRemoteOperations = pendingRemoteOperations,
+                                    if (info.syncResult == SyncResult.Success || info.syncResult == SyncResult.UpToDate) {
+                                        Timber.i(
+                                            "Signaling app launch:\n\tappId: %d\n\tclientId: %s\n\tosType: %s",
+                                            appId,
+                                            PrefManager.clientId,
+                                            EOSType.AndroidUnknown,
                                         )
-                                    } else if (ignorePendingOperations &&
-                                        pendingRemoteOperations.any {
-                                            it.operation == ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionActive
+
+                                        val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
+                                            appId = appId,
+                                            clientId = clientId,
+                                            machineName = SteamUtils.getMachineName(steamInstance),
+                                            ignorePendingOperations = ignorePendingOperations,
+                                            osType = EOSType.AndroidUnknown,
+                                        ).await()
+
+                                        if (pendingRemoteOperations.isNotEmpty() && !ignorePendingOperations) {
+                                            syncResult = PostSyncInfo(
+                                                syncResult = SyncResult.PendingOperations,
+                                                pendingRemoteOperations = pendingRemoteOperations,
+                                            )
+                                        } else if (ignorePendingOperations &&
+                                            pendingRemoteOperations.any {
+                                                it.operation == ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionActive
+                                            }
+                                        ) {
+                                            steamInstance._steamUser!!.kickPlayingSession()
                                         }
-                                    ) {
-                                        steamInstance._steamUser!!.kickPlayingSession()
                                     }
                                 }
                             }
@@ -1582,10 +1582,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(LoggedOffCallback::class.java, ::onLoggedOff))
                     add(subscribe(PersonaStateCallback::class.java, ::onPersonaStateReceived))
                     add(subscribe(LicenseListCallback::class.java, ::onLicenseList))
-                    add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
-                    add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
-                    add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
-                    add(subscribe(AliasHistoryCallback::class.java, ::onAliasHistory))
+//                    add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
+//                    add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
+//                    add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
+//                    add(subscribe(AliasHistoryCallback::class.java, ::onAliasHistory))
                 }
             }
 
@@ -1634,6 +1634,12 @@ class SteamService : Service(), IChallengeUrlChanged {
     private fun connectToSteam() {
         CoroutineScope(Dispatchers.IO).launch {
             // this call errors out if run on the main thread
+
+            // Don't bother if it has no internet
+            if (!DownloadService.isInternetConnected()) {
+                return@launch
+            }
+
             steamClient!!.connect()
 
             delay(5000)

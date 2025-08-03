@@ -1,5 +1,8 @@
 package app.gamenative.service
 
+import android.content.Context.CONNECTIVITY_SERVICE
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import app.gamenative.utils.StorageUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -66,5 +69,15 @@ object DownloadService {
 
     fun getInternalStorageBase(): String {
         return DaoService.getContext().dataDir.path + "/files"
+    }
+
+    fun isInternetConnected(): Boolean {
+        val connectivityManager = DaoService.getContext().getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+        return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 }
