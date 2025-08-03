@@ -2055,17 +2055,19 @@ class SteamService : Service(), IChallengeUrlChanged {
                     val packageIds = licensesToRemove.map { it.packageId }
                     licenseDao.deleteStaleLicenses(packageIds)
                 }
-
-                // Get PICS information with the current license database.
-                licenseDao.getAllLicenses()
-                    .map { PICSRequest(it.packageId, it.accessToken) }
-                    .chunked(MAX_PICS_BUFFER)
-                    .forEach { chunk ->
-                        Timber.d("onLicenseList: Queueing ${chunk.size} package(s) for PICS")
-                        packagePicsChannel.send(chunk)
-                    }
             }
         }
+    }
+
+    suspend fun processLicenseList() {
+        // Get PICS information with the current license database.
+        licenseDao.getAllLicenses()
+            .map { PICSRequest(it.packageId, it.accessToken) }
+            .chunked(MAX_PICS_BUFFER)
+            .forEach { chunk ->
+                Timber.d("onLicenseList: Queueing ${chunk.size} package(s) for PICS")
+                packagePicsChannel.send(chunk)
+            }
     }
 
     override fun onChanged(qrAuthSession: QrAuthSession?) {
@@ -2094,6 +2096,12 @@ class SteamService : Service(), IChallengeUrlChanged {
             if (PrefManager.lastPICSSyncTime < (now - PrefManager.intervalPICSSync)
                 || PrefManager.lastPICSSyncTime > now) {
                 // Worth it in case someone is messing with their system time
+
+                // License list - we take what we got at last logon, and queue it to PICS
+                // (will later have to make it update the license list *right now*, but it's done on callbacks etc...)
+                sourceMostRecentStatusText.value = "Getting license list from most recent log on"
+                processLicenseList()
+
                 Timber.d("PICS syncing - last synced at ${PrefManager.lastPICSSyncTime}, it is ${now}")
 
                 sourceMostRecentStatusText.value = "Product information requested"
