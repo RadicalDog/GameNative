@@ -2,6 +2,9 @@ package app.gamenative.service.appsource
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import android.net.Uri
+import androidx.core.net.toUri
+import app.gamenative.Constants
 import app.gamenative.PrefManager
 import app.gamenative.data.LibraryItem
 import app.gamenative.data.SteamApp
@@ -163,5 +166,22 @@ object SteamSource : AppSourceInterface {
     }
     override fun getLastSyncTime(): Long {
         return PrefManager.lastPICSSyncTime
+    }
+
+    override fun isValidToDownload(appId: Int): Boolean {
+        val appInfo = SteamService.getAppInfoOf(appId)
+        if (appInfo == null) {
+            return false
+        }
+        return (appInfo!!.branches.isNotEmpty() && appInfo.depots.isNotEmpty())
+    }
+
+    override fun getStoreLink(appId: Int): Uri {
+        return (Constants.Library.STORE_URL + appId).toUri()
+    }
+
+    override fun getHeroUrl (appId: Int): String? {
+        val appInfo = SteamService.getAppInfoOf(appId)
+        return appInfo?.getHeroUrl()
     }
 }

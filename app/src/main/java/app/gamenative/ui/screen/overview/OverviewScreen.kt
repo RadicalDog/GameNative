@@ -64,7 +64,6 @@ fun OverviewScreen(
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    Timber.d("Current container: ${ContainerUtils.currentContainer}")
                     onNavigateRoute(PluviaScreen.XServer.route)
                 },
                 shape = RoundedCornerShape(16.dp),

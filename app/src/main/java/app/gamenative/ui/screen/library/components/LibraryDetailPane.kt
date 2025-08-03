@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import app.gamenative.PrefManager
 import app.gamenative.service.SteamService
+import app.gamenative.service.appsource.SteamSource
 import app.gamenative.ui.data.LibraryState
 import app.gamenative.ui.enums.AppFilter
 import app.gamenative.ui.screen.library.AppScreen
@@ -54,6 +55,7 @@ internal fun LibraryDetailPane(
                 appId = appId,
                 onClickPlay = onClickPlay,
                 onBack = onBack,
+                source = SteamSource,
             )
         }
     }

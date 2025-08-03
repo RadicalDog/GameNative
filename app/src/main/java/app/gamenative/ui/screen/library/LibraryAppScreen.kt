@@ -122,11 +122,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import app.gamenative.enums.Marker
+import app.gamenative.data.LibraryItem
 import app.gamenative.enums.SaveLocation
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.ui.graphics.compositeOver
 import app.gamenative.utils.MarkerUtils
+import app.gamenative.enums.Source
+import app.gamenative.service.AppSourceService
+import app.gamenative.service.appsource.AppSourceInterface
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -171,6 +175,7 @@ private fun SkeletonText(
 @Composable
 fun AppScreen(
     appId: Int,
+    source: AppSourceInterface,
     onClickPlay: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -178,7 +183,8 @@ fun AppScreen(
     val scope = rememberCoroutineScope()
 
     val appInfo by remember(appId) {
-        mutableStateOf(SteamService.getAppInfoOf(appId)!!)
+        mutableStateOf(AppSourceService.getApp(source.source, appId))
+//        mutableStateOf(SteamService.getAppInfoOf(appId)!!)
     }
 
     var downloadInfo by remember(appId) {
@@ -192,7 +198,8 @@ fun AppScreen(
     }
 
     val isValidToDownload by remember(appId) {
-        mutableStateOf(appInfo.branches.isNotEmpty() && appInfo.depots.isNotEmpty())
+        mutableStateOf(source.isValidToDownload(appId))
+//        mutableStateOf(appInfo.branches.isNotEmpty() && appInfo.depots.isNotEmpty())
     }
 
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
@@ -552,7 +559,7 @@ fun AppScreen(
                         // TODO add option to view web page externally or internally
                         val browserIntent = Intent(
                             Intent.ACTION_VIEW,
-                            (Constants.Library.STORE_URL + appInfo.id).toUri(),
+                            source.getStoreLink(appInfo.appId),
                         )
                         context.startActivity(browserIntent)
                     },
@@ -792,7 +799,7 @@ fun AppScreen(
 @Composable
 private fun AppScreenContent(
     modifier: Modifier = Modifier,
-    appInfo: SteamApp,
+    appInfo: LibraryItem,
     isInstalled: Boolean,
     isValidToDownload: Boolean,
     isDownloading: Boolean,
@@ -813,13 +820,15 @@ private fun AppScreenContent(
     val wifiAllowed = !PrefManager.downloadOnWifiOnly || wifiConnected
     val scrollState = rememberScrollState()
 
+    val source = AppSourceService.getSourceClass(appInfo.source)
+
     var optionsMenuVisible by remember { mutableStateOf(false) }
 
     // Compute last played timestamp from local install folder
-    val lastPlayedText by remember(appInfo.id, isInstalled) {
+    val lastPlayedText by remember(appInfo.appId, isInstalled) {
         mutableStateOf(
             if (isInstalled) {
-                val path = SteamService.getAppDirPath(appInfo.id)
+                val path = appInfo.downloadFolder
                 val file = java.io.File(path)
                 if (file.exists()) {
                     SteamUtils.fromSteamTime((file.lastModified() / 1000).toInt())
@@ -831,9 +840,10 @@ private fun AppScreenContent(
             }
         )
     }
+/*
     // Compute real playtime by fetching owned games
     var playtimeText by remember { mutableStateOf("0 hrs") }
-    LaunchedEffect(appInfo.id) {
+    LaunchedEffect(appInfo.appId) {
         val steamID = SteamService.userSteamId?.accountID?.toLong()
         if (steamID != null) {
             val games = SteamService.getOwnedGames(steamID)
@@ -843,10 +853,13 @@ private fun AppScreenContent(
             } else "0 hrs"
         }
     }
+ */
 
-    LaunchedEffect(appInfo.id) {
+    LaunchedEffect(appInfo.appId) {
         scrollState.animateScrollTo(0)
     }
+
+
 
     var appSizeOnDisk by remember { mutableStateOf("") }
 
@@ -856,16 +869,18 @@ private fun AppScreenContent(
         if (isInstalled) {
             appSizeOnDisk = " ..."
 
-            DownloadService.getSizeOnDiskDisplay(appInfo.id) {
+            DownloadService.getSizeOnDiskDisplay(appInfo.appId) {
                 appSizeOnDisk = "$it"
             }
         }
     }
 
     // Check if an update is pending
-    var isUpdatePending by remember(appInfo.id) { mutableStateOf(false) }
-    LaunchedEffect(appInfo.id) {
-        isUpdatePending = SteamService.isUpdatePending(appInfo.id)
+    var isUpdatePending by remember(appInfo.appId) { mutableStateOf(false) }
+    LaunchedEffect(appInfo.appId) {
+        if (appInfo.source == Source.STEAM) {
+            isUpdatePending = SteamService.isUpdatePending(appInfo.appId)
+        }
     }
 
     Column(
@@ -883,7 +898,7 @@ private fun AppScreenContent(
             // Hero background image
             CoilImage(
                 modifier = Modifier.fillMaxSize(),
-                imageModel = { appInfo.getHeroUrl() },
+                imageModel = {source.getHeroUrl(appInfo.appId)},
                 imageOptions = ImageOptions(contentScale = ContentScale.Crop),
                 loading = { LoadingScreen() },
                 failure = {
@@ -983,14 +998,14 @@ private fun AppScreenContent(
                     ),
                     color = Color.White
                 )
-
+/*
                 Text(
                     text = "${appInfo.developer} • ${remember(appInfo.releaseDate) {
                         SimpleDateFormat("yyyy", Locale.getDefault()).format(Date(appInfo.releaseDate * 1000))
                     }}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.9f)
-                )
+                )*/
             }
         }
 
@@ -1007,7 +1022,7 @@ private fun AppScreenContent(
             ) {
                 // Pause/Resume and Delete when downloading or paused
                 // Determine if there's a partial download (in-session or from ungraceful close)
-                val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || SteamService.hasPartialDownload(appInfo.id)
+                val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || SteamService.hasPartialDownload(appInfo.appId)
                 // Disable resume when Wi-Fi only is enabled and there's no Wi-Fi
                 val isResume = !isDownloading && isPartiallyDownloaded
                 val pauseResumeEnabled = if (isResume) wifiAllowed else true
@@ -1312,7 +1327,7 @@ private fun AppScreenContent(
                                     } else {
                                         if (!isInstalled){
                                             Text(
-                                                text = DownloadService.getSizeFromStoreDisplay(appInfo.id),
+                                                text = DownloadService.getSizeFromStoreDisplay(appInfo.appId),
                                                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                                             )
                                         }
@@ -1343,7 +1358,7 @@ private fun AppScreenContent(
                                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
                                         ) {
                                             Text(
-                                                text = getAppDirPath(appInfo.id),
+                                                text = getAppDirPath(appInfo.appId),
                                                 style = MaterialTheme.typography.labelMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -1353,39 +1368,44 @@ private fun AppScreenContent(
                                 }
                             }
 
-                            // Developer item
-                            item {
-                                Column {
-                                    Text(
-                                        text = "Developer",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = appInfo.developer,
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                    )
+                            if (appInfo.source == Source.STEAM) {
+                                // TODO: Bring back
+                                /*
+                                // Developer item
+                                item {
+                                    Column {
+                                        Text(
+                                            text = "Developer",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = appInfo.developer,
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                        )
+                                    }
                                 }
-                            }
 
-                            // Release Date item
-                            item {
-                                Column {
-                                    Text(
-                                        text = "Release Date",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = remember(appInfo.releaseDate) {
-                                            val date = Date(appInfo.releaseDate * 1000)
-                                            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
-                                        },
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                    )
+                                // Release Date item
+                                item {
+                                    Column {
+                                        Text(
+                                            text = "Release Date",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = remember(appInfo.releaseDate) {
+                                                val date = Date(appInfo.releaseDate * 1000)
+                                                SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
+                                            },
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                        )
+                                    }
                                 }
+                                */
                             }
                         }
                     }
@@ -1464,10 +1484,18 @@ private fun Preview_AppScreen() {
     val intent = Intent(context, SteamService::class.java)
     context.startForegroundService(intent)
     var isDownloading by remember { mutableStateOf(false) }
+
+    val item = fakeAppInfo(1)
+    val li = LibraryItem(
+        appId = item.id,
+        name = item.name,
+        iconHash = item.iconHash,
+        source = Source.STEAM,
+    )
     PluviaTheme {
         Surface {
             AppScreenContent(
-                appInfo = fakeAppInfo(1),
+                appInfo = li,
                 isInstalled = false,
                 isValidToDownload = true,
                 isDownloading = isDownloading,
