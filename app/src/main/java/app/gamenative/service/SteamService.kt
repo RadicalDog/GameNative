@@ -1585,7 +1585,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(DisconnectedCallback::class.java, ::onDisconnected))
                     add(subscribe(LoggedOnCallback::class.java, ::onLoggedOn))
                     add(subscribe(LoggedOffCallback::class.java, ::onLoggedOff))
-                    add(subscribe(PersonaStateCallback::class.java, ::onPersonaStateReceived))
+//                    add(subscribe(PersonaStateCallback::class.java, ::onPersonaStateReceived))
                     add(subscribe(LicenseListCallback::class.java, ::onLicenseList))
 //                    add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
 //                    add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
