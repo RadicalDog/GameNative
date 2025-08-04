@@ -1026,6 +1026,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                     Timber.w("Cannot close app when sync already in progress")
                     return@async
                 }
+                if (instance?._steamCloud == null || ! DownloadService.isInternetConnected()) {
+                    // e.g. offline
+                    Timber.w("Cannot sync when not connected")
+                    return@async
+                }
 
                 syncInProgress = true
 
