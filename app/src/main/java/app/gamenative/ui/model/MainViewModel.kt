@@ -159,19 +159,6 @@ class MainViewModel @Inject constructor(
         _state.update { it.copy(showBootingSplash = value) }
     }
 
-    fun setCurrentScreen(currentScreen: String?) {
-        val screen = when (currentScreen) {
-            PluviaScreen.LoginUser.route -> PluviaScreen.LoginUser
-            PluviaScreen.Library.route -> PluviaScreen.Library
-            PluviaScreen.XServer.route -> PluviaScreen.XServer
-            PluviaScreen.Settings.route -> PluviaScreen.Settings
-            PluviaScreen.Chat.route -> PluviaScreen.Chat
-            else -> PluviaScreen.LoginUser
-        }
-
-        setCurrentScreen(screen)
-    }
-
     fun setCurrentScreen(value: PluviaScreen) {
         _state.update { it.copy(currentScreen = value) }
     }

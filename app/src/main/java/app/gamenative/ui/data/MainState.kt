@@ -8,7 +8,7 @@ data class MainState(
     val appTheme: AppTheme = AppTheme.NIGHT,
     val paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
     val resettedScreen: PluviaScreen? = null,
-    val currentScreen: PluviaScreen = PluviaScreen.LoginUser,
+    val currentScreen: PluviaScreen? = null,
     val hasLaunched: Boolean = false,
     val loadingDialogVisible: Boolean = false,
     val loadingDialogProgress: Float = 0F,
