@@ -13,7 +13,7 @@ object DownloadService {
 
     // Jetpack Compose previews need this class simplified
     private val isPreviewView = try {
-        Class.forName("androidx.compose.ui.tooling.preview.Preview")
+        Class.forName("androidx.compose.ui.tooling.preview.PreviewActivity")
         true
     } catch (e: ClassNotFoundException) {
         false
