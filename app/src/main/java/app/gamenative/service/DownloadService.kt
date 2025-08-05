@@ -10,6 +10,15 @@ import timber.log.Timber
 import java.io.File
 
 object DownloadService {
+
+    // Jetpack Compose previews need this class simplified
+    private val isPreviewView = try {
+        Class.forName("androidx.compose.ui.tooling.preview.Preview")
+        true
+    } catch (e: ClassNotFoundException) {
+        false
+    }
+
     init {
         getDownloadDirectoryApps()
     }
@@ -20,6 +29,10 @@ object DownloadService {
     fun getDownloadDirectoryApps (): MutableList<String> {
         // What apps have folders in the download area?
         // Isn't checking for "complete" marker - incomplete is accepted
+
+        if (isPreviewView) {
+            return mutableListOf("sample_app1", "sample_app2")
+        }
 
         // Only update if cache is over N milliseconds old
         val time = System.currentTimeMillis()
@@ -68,10 +81,12 @@ object DownloadService {
     }
 
     fun getInternalStorageBase(): String {
-        return DaoService.getContext().dataDir.path + "/files"
+        if (isPreviewView) return "/mock/internal/storage/files"
+        return DaoService.getContext().filesDir.path
     }
 
     fun isInternetConnected(): Boolean {
+        if (isPreviewView) return true
         val connectivityManager = DaoService.getContext().getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
 
         val network = connectivityManager.activeNetwork ?: return false

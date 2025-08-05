@@ -265,15 +265,13 @@ private fun Preview_LibraryListPane() {
             LibraryState(
                 appInfoList = List(15) { idx ->
                     val item = fakeAppInfo(idx)
-                    val li = LibraryItem(
+                    LibraryItem(
                         appId = item.id,
+                        source = Source.STEAM,
                         name = item.name,
                         iconHash = item.iconHash,
                         isShared = idx % 2 == 0,
-                        source = Source.STEAM,
-                    )
-                    li.index = item.id
-                    li
+                    ).apply { index = idx }
                 },
             ),
         )

@@ -141,7 +141,7 @@ private fun Preview_LibraryScreenContent() {
                         source = Source.STEAM,
                         name = item.name,
                         iconHash = item.iconHash,
-                    )
+                    ).apply { index = idx }
                 },
             ),
         )
