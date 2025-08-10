@@ -190,7 +190,7 @@ private fun Preview_AppItem() {
             LazyColumn(
                 modifier = Modifier.padding(16.dp)
             ) {
-                items(AppSourceService.appSources.toList()) { source ->
+                items(AppSourceService.getAppSources().toList()) { source ->
                     AppSourceRow(appSource = source.second, onNavigateRoute = {})
                 }
             }

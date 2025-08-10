@@ -12,12 +12,16 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 object AppSourceService {
-    val appSources: Map<Source, AppSourceInterface> = mapOf(
-    //    Source.CUSTOM to ...(),
-        Source.STEAM to SteamSource,
-    )
+    fun getAppSources(): Map<Source, AppSourceInterface> {
+        val appSources: Map<Source, AppSourceInterface> = mapOf(
+            //    Source.CUSTOM to ...(),
+            Source.STEAM to SteamSource,
+        )
+        return appSources
+    }
 
     fun getSourceClass(source: Source): AppSourceInterface {
+        val appSources = getAppSources()
         if (appSources.containsKey(source)) {
             return appSources[source]!!
         } else {

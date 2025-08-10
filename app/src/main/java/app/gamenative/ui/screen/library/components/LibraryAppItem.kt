@@ -33,12 +33,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import app.gamenative.PrefManager
 import app.gamenative.data.LibraryItem
 import app.gamenative.enums.Source
+import app.gamenative.service.DaoService
 import app.gamenative.service.DownloadService
 import app.gamenative.service.SteamService
 import app.gamenative.ui.internal.fakeAppInfo
@@ -203,6 +206,9 @@ internal fun AppItem(
 @Preview(device = "spec:width=1920px,height=1080px,dpi=440") // Odin2 Mini
 @Composable
 private fun Preview_AppItem() {
+    val context = LocalContext.current
+    PrefManager.init(context)
+    DaoService.initialize(context)
     PluviaTheme {
         Surface {
             LazyColumn(

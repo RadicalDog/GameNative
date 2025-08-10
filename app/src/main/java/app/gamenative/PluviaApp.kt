@@ -42,11 +42,11 @@ class PluviaApp : SplitCompatApplication() {
         // Init our custom crash handler.
         CrashHandler.initialize(this)
 
-        // Init our datastore preferences.
-        PrefManager.init(this)
-
         // Init DAO db
         DaoService.initialize(this)
+
+        // Init our datastore preferences.
+        PrefManager.init(this)
 
         // Initialize PostHog Analytics
         val postHogConfig = PostHogAndroidConfig(
