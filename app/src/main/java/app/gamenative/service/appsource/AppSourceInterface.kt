@@ -32,8 +32,8 @@ interface AppSourceInterface {
     fun getUsername(): String {
         return ""
     }
-    fun getConnectedText(): String {
-        return "Not connected"
+    fun setConnectedText() {
+        connectedText.value = "Not connected"
     }
     fun setLastSyncTime(timestamp: Long) {
         lastSyncTimeHumanReadable.value = AppSourceService.timestampToHumanReadable(timestamp)
@@ -43,6 +43,7 @@ interface AppSourceInterface {
     }
     val sourceMostRecentStatusText: MutableState<String>
     val lastSyncTimeHumanReadable: MutableState<String>
+    val connectedText: MutableState<String>
 
     // App specific questions
     fun isValidToDownload (appId: Int): Boolean

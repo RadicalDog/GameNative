@@ -1585,10 +1585,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(DisconnectedCallback::class.java, ::onDisconnected))
                     add(subscribe(LoggedOnCallback::class.java, ::onLoggedOn))
                     add(subscribe(LoggedOffCallback::class.java, ::onLoggedOff))
-//                    add(subscribe(PersonaStateCallback::class.java, ::onPersonaStateReceived))
+                    add(subscribe(PersonaStateCallback::class.java, ::onPersonaStateReceived))
                     add(subscribe(LicenseListCallback::class.java, ::onLicenseList))
 //                    add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
-//                    add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
+                    add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
 //                    add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
 //                    add(subscribe(AliasHistoryCallback::class.java, ::onAliasHistory))
                 }
@@ -1631,6 +1631,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         // Unregister Wi-Fi connectivity callback
         connectivityManager.unregisterNetworkCallback(networkCallback)
 
+        SteamSource.setConnectedText()
+
         scope.launch { stop() }
     }
 
@@ -1648,6 +1650,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             steamClient!!.connect()
 
             delay(5000)
+
+            SteamSource.setConnectedText()
 
             if (!isConnected) {
                 Timber.w("Failed to connect to Steam, marking endpoint bad and force disconnecting")
@@ -1770,6 +1774,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             stopSelf()
         }
+
+        SteamSource.setConnectedText()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -1780,6 +1786,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             PrefManager.steamUserAccountId = userSteamId!!.accountID.toInt()
             Timber.d("Saving logged in Steam accountID ${userSteamId!!.accountID.toInt()}")
         }
+
+        SteamSource.setConnectedText()
 
         when (callback.result) {
             EResult.TryAnotherCM -> {
@@ -1964,7 +1972,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             return
         }
 
-        // Timber.d("Persona state received: ${callback.name}")
+        Timber.d("Persona state received: ${callback.name}")
 
         scope.launch {
             db.withTransaction {

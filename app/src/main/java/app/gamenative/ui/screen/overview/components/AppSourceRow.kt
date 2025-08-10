@@ -114,8 +114,9 @@ internal fun AppSourceRow(
                 }
 
                 // Status text
+                var connectedText by appSource.connectedText
                 Text(
-                    text = appSource.getConnectedText(),
+                    text = connectedText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = statusColor
                 )

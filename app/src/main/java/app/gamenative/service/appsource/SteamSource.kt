@@ -29,6 +29,7 @@ object SteamSource : AppSourceInterface {
     // Displays what is happening to user. No problem to update it loads - users love seeing things progress
     override var sourceMostRecentStatusText: MutableState<String> = mutableStateOf("")
     override var lastSyncTimeHumanReadable: MutableState<String> = mutableStateOf("")
+    override var connectedText: MutableState<String> = mutableStateOf("Not connected")
 
     var job: Job = Job()
 
@@ -148,15 +149,15 @@ object SteamSource : AppSourceInterface {
         return PrefManager.steamUsername
     }
 
-    override fun getConnectedText(): String {
+    override fun setConnectedText() {
         if (isReadyToSync()) {
-            return "Connected"
+            connectedText.value = "Connected"
         } else if(! SteamService.isConnected) {
-            return "Disconnected"
+            connectedText.value = "Disconnected"
         } else if (! SteamService.isLoggedIn) {
-            return "Not logged in"
+            connectedText.value = "Not logged in"
         } else {
-            return "Disconnect unknown"
+            connectedText.value = "Disconnect unknown"
         }
     }
 
