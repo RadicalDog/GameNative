@@ -6,6 +6,7 @@ import android.util.Log;
 
 // import com.winlator.R;
 import app.gamenative.R;
+import timber.log.Timber;
 import com.winlator.box86_64.Box86_64Preset;
 import com.winlator.core.Callback;
 import com.winlator.core.FileUtils;
@@ -66,10 +67,18 @@ public class ContainerManager {
                         if (file.getName().startsWith(ImageFs.USER+"-")) {
                             Container container = new Container(Integer.parseInt(file.getName().replace(ImageFs.USER+"-", "")));
                             container.setRootDir(new File(homeDir, ImageFs.USER+"-"+container.id));
-                            JSONObject data = new JSONObject(FileUtils.readString(container.getConfigFile()));
-                            container.loadData(data);
-                            containers.add(container);
-                            maxContainerId = Math.max(maxContainerId, container.id);
+
+                            // Don't bomb out entirely if one container config is bad
+                            try {
+                                var configFile = container.getConfigFile();
+                                JSONObject data = new JSONObject(FileUtils.readString(configFile));
+                                container.loadData(data);
+                                containers.add(container);
+                                maxContainerId = Math.max(maxContainerId, container.id);
+                            } catch (NullPointerException e) {
+                                // Can't read data or something
+                                Timber.tag("ContainerManager").d("Container config not healthy: "+container.getConfigFile().getAbsolutePath());
+                            }
                         }
                     }
                 }
