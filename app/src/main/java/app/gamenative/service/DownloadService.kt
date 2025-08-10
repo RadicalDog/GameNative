@@ -66,10 +66,14 @@ object DownloadService {
     }
 
     fun getInternalStorageBase(): String {
-        return DaoService.getContext().filesDir.path
+        val path = DaoService.getContext().filesDir?.path
+        return path ?: ""
     }
 
-    fun isInternetConnected(context: Context): Boolean {
+    fun isInternetConnected(context: Context?): Boolean {
+        if (context == null) {
+            return false
+        }
         val connectivityManager = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
 
         val network = connectivityManager.activeNetwork ?: return false

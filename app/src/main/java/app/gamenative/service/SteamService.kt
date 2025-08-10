@@ -916,7 +916,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 instance?.let { steamInstance ->
                     getAppInfoOf(appId)?.let { appInfo ->
 
-                        if (steamInstance._steamCloud == null || ! DownloadService.isInternetConnected()) {
+                        if (steamInstance._steamCloud == null || ! DownloadService.isInternetConnected(steamInstance.applicationContext)) {
                             // e.g. offline
                             syncResult = PostSyncInfo(SyncResult.CloudAccessIssue)
                         } else {
@@ -1026,7 +1026,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     Timber.w("Cannot close app when sync already in progress")
                     return@async
                 }
-                if (instance?._steamCloud == null || ! DownloadService.isInternetConnected()) {
+                if (instance?._steamCloud == null || ! DownloadService.isInternetConnected(instance?.applicationContext)) {
                     // e.g. offline
                     Timber.w("Cannot sync when not connected")
                     return@async
@@ -1641,7 +1641,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             // this call errors out if run on the main thread
 
             // Don't bother if it has no internet
-            if (!DownloadService.isInternetConnected()) {
+            if (!DownloadService.isInternetConnected(instance?.applicationContext)) {
                 return@launch
             }
 
