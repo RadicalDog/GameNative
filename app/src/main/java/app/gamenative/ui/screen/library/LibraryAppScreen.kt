@@ -877,8 +877,9 @@ private fun AppScreenContent(
 
     // Check if an update is pending
     var isUpdatePending by remember(appInfo.appId) { mutableStateOf(false) }
+    val localContext = LocalContext.current
     LaunchedEffect(appInfo.appId) {
-        if (appInfo.source == Source.STEAM && DownloadService.isInternetConnected()) {
+        if (appInfo.source == Source.STEAM && DownloadService.isInternetConnected(localContext)) {
             isUpdatePending = SteamService.isUpdatePending(appInfo.appId)
         }
     }

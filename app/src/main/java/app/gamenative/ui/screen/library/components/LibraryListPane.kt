@@ -58,6 +58,7 @@ import androidx.compose.runtime.snapshotFlow
 import app.gamenative.PrefManager
 import app.gamenative.utils.DeviceUtils
 import app.gamenative.enums.Source
+import app.gamenative.service.DaoService
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -259,6 +260,7 @@ internal fun LibraryListPane(
 private fun Preview_LibraryListPane() {
     val context = LocalContext.current
     PrefManager.init(context)
+    DaoService.initialize(context)
     val sheetState = rememberModalBottomSheetState()
     var state by remember {
         mutableStateOf(

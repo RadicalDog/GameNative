@@ -1,5 +1,6 @@
 package app.gamenative.service
 
+import android.content.Context
 import android.content.Context.CONNECTIVITY_SERVICE
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -11,28 +12,12 @@ import java.io.File
 
 object DownloadService {
 
-    // Jetpack Compose previews need this class simplified
-    private val isPreviewView = try {
-        Class.forName("androidx.compose.ui.tooling.preview.PreviewActivity")
-        true
-    } catch (e: ClassNotFoundException) {
-        false
-    }
-
-    init {
-        getDownloadDirectoryApps()
-    }
-
     private var lastUpdateTime: Long = 0
-    private lateinit var downloadDirectoryApps: MutableList<String>
+    private var downloadDirectoryApps: MutableList<String>? = null
 
     fun getDownloadDirectoryApps (): MutableList<String> {
         // What apps have folders in the download area?
         // Isn't checking for "complete" marker - incomplete is accepted
-
-        if (isPreviewView) {
-            return mutableListOf("sample_app1", "sample_app2")
-        }
 
         // Only update if cache is over N milliseconds old
         val time = System.currentTimeMillis()
@@ -46,7 +31,7 @@ object DownloadService {
             downloadDirectoryApps = subDir
         }
 
-        return downloadDirectoryApps
+        return downloadDirectoryApps ?: mutableListOf()
     }
 
     private fun getSubdirectories (path: String): MutableList<String> {
@@ -81,13 +66,11 @@ object DownloadService {
     }
 
     fun getInternalStorageBase(): String {
-        if (isPreviewView) return "/mock/internal/storage/files"
         return DaoService.getContext().filesDir.path
     }
 
-    fun isInternetConnected(): Boolean {
-        if (isPreviewView) return true
-        val connectivityManager = DaoService.getContext().getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+    fun isInternetConnected(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
 
         val network = connectivityManager.activeNetwork ?: return false
         val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
