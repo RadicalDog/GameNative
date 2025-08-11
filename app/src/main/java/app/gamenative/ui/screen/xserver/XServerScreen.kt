@@ -559,7 +559,8 @@ fun XServerScreen(
                 // Load a default controls profile
                 val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
                 if (profiles.isNotEmpty()) {
-                    setProfile(profiles[2])
+                    // Set to id 2 if it exists, backup is 0
+                    setProfile(profiles.getOrElse(2) { profiles[0] })
                 }
 
                 // Set overlay opacity from preferences if needed
