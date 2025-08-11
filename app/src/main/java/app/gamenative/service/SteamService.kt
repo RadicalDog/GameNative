@@ -270,7 +270,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             private set
 
         private val serverListPath: String
-            get() = Paths.get(DownloadService.getInternalStorageBase(),"server_list.bin").pathString
+            get() = Paths.get(instance!!.cacheDir.path,"server_list.bin").pathString
 
         private val depotManifestsPath: String
             get() = Paths.get(DownloadService.getInternalStorageBase(), "Steam", "depot_manifests.zip").pathString
