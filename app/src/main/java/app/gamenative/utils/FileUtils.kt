@@ -14,6 +14,7 @@ import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import timber.log.Timber
+import java.util.stream.Collectors
 
 object FileUtils {
 
@@ -102,25 +103,28 @@ object FileUtils {
         }
     }
 
-    fun findFiles(rootPath: Path, pattern: String, includeDirectories: Boolean = false): Stream<Path> {
+    fun findFiles(rootPath: Path, pattern: String, includeDirectories: Boolean = false): List<Path> {
         val patternParts = pattern.split("*").filter { it.isNotEmpty() }
         Timber.i("$pattern -> $patternParts")
-        if (!Files.exists(rootPath)) return emptyList<Path>().stream()
-        return Files.list(rootPath).filter { path ->
-            if (path.isDirectory() && !includeDirectories) {
-                false
-            } else {
-                val fileName = path.name
-                Timber.i("Checking $fileName for pattern $pattern")
-                var startIndex = 0
-                !patternParts.map {
-                    val index = fileName.indexOf(it, startIndex)
-                    if (index >= 0) {
-                        startIndex = index + it.length
-                    }
-                    index
-                }.any { it < 0 }
-            }
+        if (!Files.exists(rootPath)) return emptyList()
+
+        return Files.list(rootPath).use { stream ->
+            stream.filter { path ->
+                if (path.isDirectory() && !includeDirectories) {
+                    false
+                } else {
+                    val fileName = path.name
+                    Timber.i("Checking $fileName for pattern $pattern")
+                    var startIndex = 0
+                    !patternParts.map {
+                        val index = fileName.indexOf(it, startIndex)
+                        if (index >= 0) {
+                            startIndex = index + it.length
+                        }
+                        index
+                    }.any { it < 0 }
+                }
+            }.collect(Collectors.toList())
         }
     }
 

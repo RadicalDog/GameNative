@@ -215,7 +215,7 @@ object SteamAutoCloud {
                         Timber.i("Found ${it.pathString}\n\tin ${userFile.prefix}\n\twith sha [${sha.joinToString(", ")}]")
 
                         UserFileInfo(userFile.root, userFile.path, it.name, Files.getLastModifiedTime(it).toMillis(), sha)
-                    }.collect(Collectors.toList())
+                    }
 
                     Paths.get(userFile.prefix).pathString to files
                 }
