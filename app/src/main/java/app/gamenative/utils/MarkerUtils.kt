@@ -5,9 +5,11 @@ import timber.log.Timber
 import java.io.File
 
 object MarkerUtils {
-    fun hasMarker(dirPath: String, type: Marker): Boolean {
+    fun hasMarker(dirPath: String, type: Marker, suppressLog: Boolean = false): Boolean {
         val file = File(dirPath, type.fileName)
-        Timber.i("$file marker is ${file.exists()}")
+        if (!suppressLog) {
+            Timber.i("$file marker is ${file.exists()}")
+        }
         return File(dirPath, type.fileName).exists()
     }
 
