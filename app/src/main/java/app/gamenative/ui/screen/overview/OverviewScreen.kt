@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,8 +32,6 @@ import app.gamenative.service.AppSourceService
 import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.screen.overview.components.AppSourceRow
 import app.gamenative.ui.theme.PluviaTheme
-import app.gamenative.utils.ContainerUtils
-import timber.log.Timber
 
 @Composable
 fun OverviewScreen(
@@ -59,23 +56,6 @@ fun OverviewScreen(
                     )
                 )
             )
-
-            // Test container link
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    onNavigateRoute(PluviaScreen.XServer.route)
-                },
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                contentPadding = PaddingValues(16.dp)
-            ) {
-                Text(
-                    "Container",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
 
             // Library buttons
             FlowRow (horizontalArrangement = Arrangement.spacedBy(8.dp)) {
