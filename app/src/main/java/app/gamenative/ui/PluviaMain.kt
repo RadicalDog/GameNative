@@ -191,7 +191,8 @@ fun PluviaMain(
     LaunchedEffect(Unit) {
         //
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            if (!state.isSteamConnected && !isConnecting) {
+            Timber.d("SteamService isRunning: ${SteamService.isRunning}")
+            if (!state.isSteamConnected || !SteamService.isRunning) {
                 Timber.d("Steam not connected - attempt")
 //                isConnecting = true
                 context.startForegroundService(Intent(context, SteamService::class.java))
@@ -202,9 +203,6 @@ fun PluviaMain(
     // Listen for connection state changes
     LaunchedEffect(state.isSteamConnected) {
         Timber.d("Steam connected ${state.isSteamConnected}")
-        if (state.isSteamConnected) {
-            isConnecting = false
-        }
     }
 
     // Timeout if stuck in connecting state for 10 seconds so that its not in loading state forever
