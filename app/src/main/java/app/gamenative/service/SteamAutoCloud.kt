@@ -1,6 +1,7 @@
 package app.gamenative.service
 
 import androidx.room.withTransaction
+import app.gamenative.PrefManager
 import app.gamenative.data.PostSyncInfo
 import app.gamenative.data.SteamApp
 import app.gamenative.data.UserFileInfo
@@ -537,7 +538,7 @@ object SteamAutoCloud {
         var microsecUploadFiles = 0L
 
         microsecTotal = measureTime {
-            val localAppChangeNumber = overrideLocalChangeNumber ?: steamInstance.changeNumbersDao.getByAppId(appInfo.id)?.changeNumber ?: -1
+            val localAppChangeNumber = overrideLocalChangeNumber ?: DaoService.db.appChangeNumbersDao().getByAppId(appInfo.id)?.changeNumber ?: -1
 
             val changeNumber = if (localAppChangeNumber >= 0) localAppChangeNumber else 0
             val appFileListChange = steamCloud.getAppFileListChange(appInfo.id, changeNumber).await()
@@ -606,12 +607,8 @@ object SteamAutoCloud {
                         return@async PostSyncInfo(syncResult)
                     }
 
-                    with(steamInstance) {
-                        db.withTransaction {
-                            fileChangeListsDao.insert(appInfo.id, updatedLocalFiles.map { it.value }.flatten())
-                            changeNumbersDao.insert(appInfo.id, cloudAppChangeNumber)
-                        }
-                    }
+                    DaoService.db.appFileChangeListsDao().insert(appInfo.id, updatedLocalFiles.map { it.value }.flatten())
+                    DaoService.db.appChangeNumbersDao().insert(appInfo.id, cloudAppChangeNumber)
 
                     return@async null
                 }
@@ -621,7 +618,7 @@ object SteamAutoCloud {
                 parentScope.async {
                     Timber.i("Uploading local user files")
 
-                    val fileChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.id)!!.let {
+                    val fileChanges = DaoService.db.appFileChangeListsDao().getByAppId(appInfo.id)!!.let {
                         val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
 
                         result.second
@@ -641,18 +638,15 @@ object SteamAutoCloud {
                     filesManaged = allLocalUserFiles.size
 
                     if (uploadResult.uploadBatchSuccess) {
-                        with(steamInstance) {
-                            db.withTransaction {
-                                fileChangeListsDao.insert(appInfo.id, allLocalUserFiles)
-                                changeNumbersDao.insert(appInfo.id, uploadResult.appChangeNumber)
-                            }
-                        }
+                        DaoService.db.appFileChangeListsDao().insert(appInfo.id, allLocalUserFiles)
+                        DaoService.db.appChangeNumbersDao().insert(appInfo.id, uploadResult.appChangeNumber)
                     } else {
                         syncResult = SyncResult.UpdateFail
                     }
                 }
             }
 
+            // Actual logic begins here, using callbacks above
             if (localAppChangeNumber < cloudAppChangeNumber) {
                 // our change number is less than the expected, meaning we are behind and
                 // need to download the new user files, but first we should check that
@@ -663,7 +657,7 @@ object SteamAutoCloud {
                     var hasLocalChanges: Boolean
 
                     microsecAcPrepUserFiles = measureTime {
-                        hasLocalChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.id)?.let {
+                        hasLocalChanges = DaoService.db.appFileChangeListsDao().getByAppId(appInfo.id)?.let {
                             getFilesDiff(allLocalUserFiles, it.userFileInfo).first
                         } == true
                     }.inWholeMicroseconds
@@ -708,7 +702,7 @@ object SteamAutoCloud {
                 microsecAcExit = measureTime {
                     // var fileChanges: FileChanges? = null
 
-                    val hasLocalChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.id)
+                    val hasLocalChanges = DaoService.db.appFileChangeListsDao().getByAppId(appInfo.id)
                         ?.let {
                             val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
                             // fileChanges = result.second
