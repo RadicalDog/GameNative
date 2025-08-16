@@ -59,7 +59,7 @@ fun OverviewScreen(
 
             // Library buttons
             FlowRow (horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                /*Button(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         // Todo: Filter to installed
@@ -73,7 +73,7 @@ fun OverviewScreen(
                         text = stringResource(R.string.library_installed),
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                     )
-                }
+                }*/
 
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
