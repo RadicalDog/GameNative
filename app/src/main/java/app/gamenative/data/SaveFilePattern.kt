@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SaveFilePattern(
     val root: PathType,
-    val path: String,
+    var path: String,
     val pattern: String,
 ) {
     val prefix: String

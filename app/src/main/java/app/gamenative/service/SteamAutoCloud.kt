@@ -207,6 +207,13 @@ object SteamAutoCloud {
             appInfo.ufs.saveFilePatterns
                 .filter { userFile -> userFile.root.isWindows }
                 .associate { userFile ->
+                    // Fix for the possibility that the user's Steam ID is needed for the path
+                    if (userFile.path.contains("{Steam3AccountID}")) {
+                        Timber.d("Cloud saves should be under Steam user: ${PrefManager.steamUserAccountId}")
+                        userFile.path = userFile.path.replace("{Steam3AccountID}", PrefManager.steamUserAccountId.toString())
+                    }
+
+
                     val files = FileUtils.findFiles(
                         Paths.get(prefixToPath(userFile.root.toString()), userFile.path),
                         userFile.pattern,
