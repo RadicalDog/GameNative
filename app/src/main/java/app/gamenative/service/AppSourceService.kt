@@ -3,6 +3,7 @@ package app.gamenative.service
 import app.gamenative.data.LibraryItem
 import app.gamenative.enums.Source
 import app.gamenative.service.appsource.AppSourceInterface
+import app.gamenative.service.appsource.ManualSource
 import app.gamenative.service.appsource.SteamSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -14,8 +15,8 @@ import java.time.format.DateTimeFormatter
 object AppSourceService {
     fun getAppSources(): Map<Source, AppSourceInterface> {
         val appSources: Map<Source, AppSourceInterface> = mapOf(
-            //    Source.CUSTOM to ...(),
             Source.STEAM to SteamSource,
+            Source.MANUAL to ManualSource,
         )
         return appSources
     }

@@ -9,6 +9,7 @@ sealed class PluviaScreen(val route: String) {
     data object XServer : PluviaScreen("xserver")
     data object Settings : PluviaScreen("settings")
     data object Overview : PluviaScreen("overview")
+    data object AddGame : PluviaScreen("addgame")
     data object Chat : PluviaScreen("chat/{id}") {
         fun route(id: Long) = "chat/$id"
         const val ARG_ID = "id"

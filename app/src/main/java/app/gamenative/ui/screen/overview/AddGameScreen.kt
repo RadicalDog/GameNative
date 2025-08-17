@@ -6,12 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,13 +24,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gamenative.PrefManager
 import app.gamenative.R
-import app.gamenative.service.AppSourceService
 import app.gamenative.ui.screen.PluviaScreen
-import app.gamenative.ui.screen.overview.components.AppSourceRow
 import app.gamenative.ui.theme.PluviaTheme
 
 @Composable
-fun OverviewScreen(
+fun AddGameScreen(
     onNavigateRoute: (String) -> Unit,
 ) {
     Scaffold {
@@ -59,22 +53,6 @@ fun OverviewScreen(
 
             // Library buttons
             FlowRow (horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                /*Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        // Todo: Filter to installed
-                        onNavigateRoute(PluviaScreen.Library.route)
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    contentPadding = PaddingValues(16.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.library_installed),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                }*/
-
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
                     onClick = {
@@ -92,12 +70,6 @@ fun OverviewScreen(
                     )
                 }
             }
-
-            LazyColumn {
-                items(AppSourceService.getAppSources().toList()) { source ->
-                    AppSourceRow(appSource = source.second, onNavigateRoute = onNavigateRoute)
-                }
-            }
         }
     }
 }
@@ -113,7 +85,7 @@ private fun Preview_DownloadsScreenContent() {
     PrefManager.init(context)
     PluviaTheme {
         Surface {
-            OverviewScreen(
+            AddGameScreen(
                 onNavigateRoute = {},
             )
         }

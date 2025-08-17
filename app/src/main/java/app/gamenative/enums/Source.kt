@@ -1,7 +1,7 @@
 package app.gamenative.enums
 
 enum class Source {
-    // CUSTOM,
+    MANUAL,
     STEAM,
     // EPIC,
     // GOG,
