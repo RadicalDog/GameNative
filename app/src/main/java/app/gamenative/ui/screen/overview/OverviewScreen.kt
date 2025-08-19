@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.screen.overview.components.AppSourceRow
 import app.gamenative.ui.theme.PluviaTheme
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OverviewScreen(
     onNavigateRoute: (String) -> Unit,
