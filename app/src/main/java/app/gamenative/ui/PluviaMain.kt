@@ -125,8 +125,8 @@ fun PluviaMain(
                     Timber.i("[PluviaMain]: Applied container config override for app ${launchRequest.appId}")
                 }
 
-                if (navController.currentDestination?.route != PluviaScreen.Home.route) {
-                    navController.navigate(PluviaScreen.Home.route) {
+                if (navController.currentDestination?.route != PluviaScreen.Library.route) {
+                    navController.navigate(PluviaScreen.Library.route) {
                         popUpTo(navController.graph.startDestinationId) {
                             saveState = false
                         }
@@ -196,32 +196,31 @@ fun PluviaMain(
                                 navController.navigate(PluviaScreen.Overview.route)
                             }
 
-                                // If a crash happen, lets not ask for a tip yet.
-                                // Instead, ask the user to contribute their issues to be addressed.
-                                if (!state.annoyingDialogShown && state.hasCrashedLastStart) {
-                                    viewModel.setAnnoyingDialogShown(true)
-                                    msgDialogState = MessageDialogState(
-                                        visible = true,
-                                        type = DialogType.CRASH,
-                                        title = "Recent Crash",
-                                        message = "Sorry about that!\n" +
-                                            "It would be nice to know about the recent issue you've had.\n" +
-                                            "You can view and export the most recent crash log in the app's settings " +
-                                            "and attach it as a Github issue in the project's repository.\n" +
-                                            "Link to the Github repo is also in settings!",
-                                        confirmBtnText = context.getString(R.string.ok),
-                                    )
-                                } else if (!(PrefManager.tipped || BuildConfig.GOLD) && !state.annoyingDialogShown) {
-                                    viewModel.setAnnoyingDialogShown(true)
-                                    msgDialogState = MessageDialogState(
-                                        visible = true,
-                                        type = DialogType.SUPPORT,
-                                        message = "Thank you for using GameNative, please consider supporting " +
-                                            "open-source PC gaming on Android by donating whatever amount is comfortable to you",
-                                        confirmBtnText = "Donate",
-                                        dismissBtnText = "Close",
-                                    )
-                                }
+                            // If a crash happen, lets not ask for a tip yet.
+                            // Instead, ask the user to contribute their issues to be addressed.
+                            if (!state.annoyingDialogShown && state.hasCrashedLastStart) {
+                                viewModel.setAnnoyingDialogShown(true)
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.CRASH,
+                                    title = "Recent Crash",
+                                    message = "Sorry about that!\n" +
+                                        "It would be nice to know about the recent issue you've had.\n" +
+                                        "You can view and export the most recent crash log in the app's settings " +
+                                        "and attach it as a Github issue in the project's repository.\n" +
+                                        "Link to the Github repo is also in settings!",
+                                    confirmBtnText = context.getString(R.string.ok),
+                                )
+                            } else if (!(PrefManager.tipped || BuildConfig.GOLD) && !state.annoyingDialogShown) {
+                                viewModel.setAnnoyingDialogShown(true)
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.SUPPORT,
+                                    message = "Thank you for using GameNative, please consider supporting " +
+                                        "open-source PC gaming on Android by donating whatever amount is comfortable to you",
+                                    confirmBtnText = "Donate",
+                                    dismissBtnText = "Close",
+                                )
                             }
                         }
 
@@ -278,7 +277,6 @@ fun PluviaMain(
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             if (!state.isSteamConnected || !SteamService.isRunning) {
                 Timber.d("[PluviaMain]: Steam not connected - attempt")
-                isConnecting = true
                 context.startForegroundService(Intent(context, SteamService::class.java))
             }
         }
@@ -310,26 +308,6 @@ fun PluviaMain(
     DisposableEffect(Unit) {
         onDispose {
             PluviaApp.events.off<AndroidEvent.PromptSaveContainerConfig, Unit>(onPromptSaveConfig)
-        }
-    }
-
-    // Timeout if stuck in connecting state for 10 seconds so that its not in loading state forever
-    LaunchedEffect(isConnecting) {
-        if (isConnecting) {
-            Timber.d("Started connecting, will timeout in 10s")
-            delay(10000)
-            Timber.d("Timeout reached, isSteamConnected=${state.isSteamConnected}")
-            if (!state.isSteamConnected) {
-                isConnecting = false
-            }
-        }
-    }
-
-    // Show loading or error UI as appropriate
-    when {
-        isConnecting -> {
-            LoadingScreen()
-            return
         }
     }
 
