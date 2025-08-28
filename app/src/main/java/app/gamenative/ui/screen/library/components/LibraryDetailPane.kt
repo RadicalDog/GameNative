@@ -9,8 +9,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import app.gamenative.PrefManager
+import app.gamenative.enums.Source
+import app.gamenative.service.AppSourceService
 import app.gamenative.service.SteamService
-import app.gamenative.service.appsource.SteamSource
 import app.gamenative.ui.data.LibraryState
 import app.gamenative.ui.enums.AppFilter
 import app.gamenative.ui.screen.library.AppScreen
@@ -21,6 +22,7 @@ import java.util.EnumSet
 @Composable
 internal fun LibraryDetailPane(
     appId: Int,
+    appSource: Source,
     onClickPlay: (Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -44,9 +46,8 @@ internal fun LibraryDetailPane(
                 onFilterChanged = {},
                 onPageChange = {},
                 onModalBottomSheet = {},
-                onIsSearching = {},
                 onLogout = {},
-                onNavigate = {},
+                onNavigateToItem = {},
                 onSearchQuery = {},
                 onNavigateRoute = {},
             )
@@ -55,7 +56,7 @@ internal fun LibraryDetailPane(
                 appId = appId,
                 onClickPlay = onClickPlay,
                 onBack = onBack,
-                source = SteamSource,
+                source = AppSourceService.getSourceClass(appSource),
             )
         }
     }
@@ -73,6 +74,7 @@ private fun Preview_LibraryDetailPane() {
     PluviaTheme {
         LibraryDetailPane(
             appId = Int.MAX_VALUE,
+            appSource = Source.STEAM,
             onClickPlay = { },
             onBack = { },
         )

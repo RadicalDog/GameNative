@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -71,9 +70,8 @@ internal fun LibraryListPane(
     onFilterChanged: (AppFilter) -> Unit,
     onModalBottomSheet: (Boolean) -> Unit,
     onPageChange: (Int) -> Unit,
-    onIsSearching: (Boolean) -> Unit,
     onLogout: () -> Unit,
-    onNavigate: (Int) -> Unit,
+    onNavigateToItem: (LibraryItem) -> Unit,
     onSearchQuery: (String) -> Unit,
     onNavigateRoute: (String) -> Unit,
 ) {
@@ -197,7 +195,7 @@ internal fun LibraryListPane(
                         AppItem(
                             modifier = Modifier.animateItem(),
                             appInfo = item,
-                            onClick = { onNavigate(item.appId) }
+                            onClick = { onNavigateToItem(item) }
                         )
                         if (item.index < state.appInfoList.lastIndex) {
                             HorizontalDivider()
@@ -291,11 +289,10 @@ private fun Preview_LibraryListPane() {
                     println("State: $currentState")
                     state = state.copy(modalBottomSheet = !currentState)
                 },
-                onIsSearching = { },
                 onSearchQuery = { },
                 onNavigateRoute = { },
                 onLogout = { },
-                onNavigate = { },
+                onNavigateToItem = { },
             )
         }
     }

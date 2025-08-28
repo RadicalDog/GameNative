@@ -77,6 +77,7 @@ private fun LibraryScreenContent(
     onLogout: () -> Unit,
 ) {
     var selectedAppId by remember { mutableStateOf<Int?>(null) }
+    var selectedAppSource by remember { mutableStateOf(Source.STEAM)}
 
     BackHandler(selectedAppId != null) { selectedAppId = null }
     val safePaddingModifier =
@@ -96,15 +97,18 @@ private fun LibraryScreenContent(
                 onFilterChanged = onFilterChanged,
                 onPageChange = onPageChange,
                 onModalBottomSheet = onModalBottomSheet,
-                onIsSearching = onIsSearching,
                 onSearchQuery = onSearchQuery,
                 onNavigateRoute = onNavigateRoute,
                 onLogout = onLogout,
-                onNavigate = { appId -> selectedAppId = appId }
+                onNavigateToItem = { app ->
+                    selectedAppId = app.appId
+                    selectedAppSource = app.source
+                }
             )
         } else {
             LibraryDetailPane(
                 appId = selectedAppId ?: SteamService.INVALID_APP_ID,
+                appSource = selectedAppSource,
                 onBack = { selectedAppId = null },
                 onClickPlay = { onClickPlay(selectedAppId!!, it) },
             )
