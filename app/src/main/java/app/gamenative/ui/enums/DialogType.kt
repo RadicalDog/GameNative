@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class DialogType(val icon: ImageVector? = null) {
     CRASH,
     SUPPORT,
+    DISCORD,
     SYNC_CONFLICT,
     SYNC_FAIL,
     MULTIPLE_PENDING_OPERATIONS,
@@ -23,6 +24,8 @@ enum class DialogType(val icon: ImageVector? = null) {
     CANCEL_APP_DOWNLOAD,
     DELETE_APP,
     INSTALL_IMAGEFS,
+
+    SAVE_CONTAINER_CONFIG,
 
     NONE,
 

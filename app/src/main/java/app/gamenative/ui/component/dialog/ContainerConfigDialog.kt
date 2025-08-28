@@ -77,6 +77,7 @@ import com.winlator.core.envvars.EnvVarInfo
 import com.winlator.core.envvars.EnvVars
 import com.winlator.core.envvars.EnvVarSelectionType
 import com.winlator.core.DefaultVersion
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,6 +113,37 @@ fun ContainerConfigDialog(
         val virglVersions = stringArrayResource(R.array.virgl_version_entries).toList()
         val zinkVersions = stringArrayResource(R.array.zink_version_entries).toList()
         val vortekVersions = stringArrayResource(R.array.vortek_version_entries).toList()
+        val languages = listOf(
+            "arabic",
+            "bulgarian",
+            "schinese",
+            "tchinese",
+            "czech",
+            "danish",
+            "dutch",
+            "english",
+            "finnish",
+            "french",
+            "german",
+            "greek",
+            "hungarian",
+            "italian",
+            "japanese",
+            "koreana",
+            "norwegian",
+            "polish",
+            "portuguese",
+            "brazilian",
+            "romanian",
+            "russian",
+            "spanish",
+            "latam",
+            "swedish",
+            "thai",
+            "turkish",
+            "ukrainian",
+            "vietnamese",
+        )
 
         var screenSizeIndex by rememberSaveable {
             val searchIndex = screenSizes.indexOfFirst { it.contains(config.screenSize) }
@@ -208,6 +240,10 @@ fun ContainerConfigDialog(
         var mouseWarpIndex by rememberSaveable {
             val index = mouseWarps.indexOfFirst { it.lowercase() == config.mouseWarpOverride }
             mutableIntStateOf(if (index >= 0) index else 0)
+        }
+        var languageIndex by rememberSaveable {
+            val idx = languages.indexOfFirst { it == config.language.lowercase() }
+            mutableIntStateOf(if (idx >= 0) idx else languages.indexOf("english"))
         }
 
         var dismissDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
@@ -419,6 +455,28 @@ fun ContainerConfigDialog(
                                 label = { Text(text = "Exec Arguments") },
                                 placeholder = { Text(text = "Example: -dx11") },
                             )
+                            val displayNameForLanguage: (String) -> String = { code ->
+                                when (code) {
+                                    "schinese" -> "Simplified Chinese"
+                                    "tchinese" -> "Traditional Chinese"
+                                    "koreana" -> "Korean"
+                                    "latam" -> "Spanish (Latin America)"
+                                    "brazilian" -> "Portuguese (Brazil)"
+                                    else -> code.replaceFirstChar { ch -> ch.titlecase(Locale.getDefault()) }
+                                }
+                            }
+                            SettingsListDropdown(
+                                enabled = true,
+                                value = languageIndex,
+                                items = languages.map(displayNameForLanguage),
+                                fallbackDisplay = displayNameForLanguage("english"),
+                                onItemSelected = { index ->
+                                    languageIndex = index
+                                    config = config.copy(language = languages[index])
+                                },
+                                title = { Text(text = "Language") },
+                                colors = settingsTileColors(),
+                            )
                             SettingsListDropdown(
                                 colors = settingsTileColors(),
                                 title = { Text(text = "Screen Size") },
@@ -553,10 +611,31 @@ fun ContainerConfigDialog(
                             SettingsSwitch(
                                 colors = settingsTileColorsAlt(),
                                 title = { Text(text = "Launch Steam Client (Beta)") },
-                                subtitle = { Text(text = "Reduces performance and significantly slows down launch\nAllows online play and fixes DRM and controller issues\nTo use, first open container, launch C:\\Program Files (x86)\\Steam\\Steam.exe, install and sign in") },
+                                subtitle = { Text(text = "Reduces performance and slows down launch\nAllows online play and fixes DRM and controller issues\nNot all games work") },
                                 state = config.launchRealSteam,
                                 onCheckedChange = {
                                     config = config.copy(launchRealSteam = it)
+                                },
+                            )
+                            // Steam Type Dropdown
+                            val steamTypeItems = listOf("Normal", "Light", "Ultra Light")
+                            val currentSteamTypeIndex = when (config.steamType.lowercase()) {
+                                com.winlator.container.Container.STEAM_TYPE_LIGHT -> 1
+                                com.winlator.container.Container.STEAM_TYPE_ULTRALIGHT -> 2
+                                else -> 0
+                            }
+                            SettingsListDropdown(
+                                colors = settingsTileColors(),
+                                title = { Text(text = "Steam Type") },
+                                value = currentSteamTypeIndex,
+                                items = steamTypeItems,
+                                onItemSelected = {
+                                    val type = when (it) {
+                                        1 -> com.winlator.container.Container.STEAM_TYPE_LIGHT
+                                        2 -> com.winlator.container.Container.STEAM_TYPE_ULTRALIGHT
+                                        else -> com.winlator.container.Container.STEAM_TYPE_NORMAL
+                                    }
+                                    config = config.copy(steamType = type)
                                 },
                             )
                         }
@@ -606,6 +685,57 @@ fun ContainerConfigDialog(
                                 state = config.disableMouseInput,
                                 onCheckedChange = { config = config.copy(disableMouseInput = it) }
                             )
+
+                            // Emulate keyboard and mouse
+                            SettingsSwitch(
+                                colors = settingsTileColorsAlt(),
+                                title = { Text(text = "Emulate keyboard and mouse") },
+                                subtitle = { Text(text = "Left stick = WASD, Right stick = mouse. L2 = left click, R2 = right click.") },
+                                state = config.emulateKeyboardMouse,
+                                onCheckedChange = { checked ->
+                                    // Initialize defaults on first enable if empty
+                                    var newBindings = config.controllerEmulationBindings
+                                    if (checked && newBindings.isEmpty()) {
+                                        newBindings = """
+                                            {"L2":"MOUSE_LEFT_BUTTON","R2":"MOUSE_RIGHT_BUTTON","A":"KEY_SPACE","B":"KEY_Q","X":"KEY_E","Y":"KEY_TAB","SELECT":"KEY_ESC","L1":"KEY_SHIFT_L","L3":"NONE","R1":"KEY_CTRL_R","R3":"NONE","DPAD_UP":"KEY_UP","DPAD_DOWN":"KEY_DOWN","DPAD_LEFT":"KEY_LEFT","DPAD_RIGHT":"KEY_RIGHT","START":"KEY_ENTER"}
+                                        """.trimIndent()
+                                    }
+                                    config = config.copy(emulateKeyboardMouse = checked, controllerEmulationBindings = newBindings)
+                                }
+                            )
+
+                            if (config.emulateKeyboardMouse) {
+                                // Dropdowns for mapping buttons -> bindings
+                                val buttonOrder = listOf(
+                                    "A","B","X","Y","L1","L2","L3","R1","R2","R3",
+                                    "DPAD_UP","DPAD_DOWN","DPAD_LEFT","DPAD_RIGHT","START","SELECT"
+                                )
+                                val context = LocalContext.current
+                                val currentMap = try {
+                                    org.json.JSONObject(config.controllerEmulationBindings)
+                                } catch (_: Exception) { org.json.JSONObject() }
+                                val bindingLabels = com.winlator.inputcontrols.Binding.keyboardBindingLabels().toList() +
+                                        com.winlator.inputcontrols.Binding.mouseBindingLabels().toList()
+                                val bindingValues = com.winlator.inputcontrols.Binding.keyboardBindingValues().map { it.name }.toList() +
+                                        com.winlator.inputcontrols.Binding.mouseBindingValues().map { it.name }.toList()
+
+                                for (btn in buttonOrder) {
+                                    val currentName = currentMap.optString(btn, "NONE")
+                                    val currentIndex = bindingValues.indexOf(currentName).coerceAtLeast(0)
+                                    SettingsListDropdown(
+                                        colors = settingsTileColors(),
+                                        title = { Text(text = btn.replace('_', ' ')) },
+                                        value = currentIndex,
+                                        items = bindingLabels,
+                                        onItemSelected = { idx ->
+                                            try {
+                                                currentMap.put(btn, bindingValues[idx])
+                                                config = config.copy(controllerEmulationBindings = currentMap.toString())
+                                            } catch (_: Exception) {}
+                                        }
+                                    )
+                                }
+                            }
                         }
                         SettingsGroup(title = { Text(text = "Wine Configuration") }) {
                             // TODO: add desktop settings

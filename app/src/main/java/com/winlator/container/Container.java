@@ -25,7 +25,7 @@ public class Container {
         THUMBSTICK_UP, THUMBSTICK_DOWN, THUMBSTICK_LEFT, THUMBSTICK_RIGHT
     }
 
-    public static final String DEFAULT_ENV_VARS = "ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=1 MESA_VK_WSI_PRESENT_MODE=mailbox TU_DEBUG=noconform";
+    public static final String DEFAULT_ENV_VARS = "ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=1 MESA_VK_WSI_PRESENT_MODE=mailbox TU_DEBUG=noconform DXVK_FRAME_RATE=30";
     public static final String DEFAULT_SCREEN_SIZE = "854x480";
     public static String DEFAULT_GRAPHICS_DRIVER = "vortek";
     public static final String DEFAULT_AUDIO_DRIVER = "alsa";
@@ -36,6 +36,9 @@ public class Container {
     public static final byte STARTUP_SELECTION_NORMAL = 0;
     public static final byte STARTUP_SELECTION_ESSENTIAL = 1;
     public static final byte STARTUP_SELECTION_AGGRESSIVE = 2;
+    public static final String STEAM_TYPE_NORMAL = "normal";
+    public static final String STEAM_TYPE_LIGHT = "light";
+    public static final String STEAM_TYPE_ULTRALIGHT = "ultralight";
     public static final byte MAX_DRIVE_LETTERS = 8;
     public final int id;
     private String name;
@@ -77,11 +80,21 @@ public class Container {
     private String executablePath = ""; // Executable path for container
     private boolean sdlControllerAPI;
 
+    // Preferred game language for Goldberg force_language.txt
+    private String language = "english";
+
     private ContainerManager containerManager;
 
     private byte dinputMapperType = 1;  // 1=standard, 2=XInput mapper
     // Disable external mouse input
     private boolean disableMouseInput = false;
+    // Steam client type for selecting appropriate Box64 RC config: normal, light, ultralight
+    private String steamType = STEAM_TYPE_NORMAL;
+
+    // Emulate keyboard/mouse using controller: left stick=WASD, right stick=mouse
+    private boolean emulateKeyboardMouse = false;
+    // Serialized as JSON object: logical button name -> Binding enum name
+    private JSONObject controllerEmulationBindings;
 
     public String getGraphicsDriverVersion() {
         return graphicsDriverVersion;
@@ -90,6 +103,25 @@ public class Container {
     public void setGraphicsDriverVersion(String graphicsDriverVersion) {
         Log.d("Container", "Setting graphicsDriverVersion: " + graphicsDriverVersion);
         this.graphicsDriverVersion = graphicsDriverVersion;
+    }
+
+    public String getSteamType() {
+        return steamType;
+    }
+
+    public void setSteamType(String steamType) {
+        String normalized = (steamType == null) ? "" : steamType.toLowerCase();
+        switch (normalized) {
+            case STEAM_TYPE_LIGHT:
+                this.steamType = STEAM_TYPE_LIGHT;
+                break;
+            case STEAM_TYPE_ULTRALIGHT:
+                this.steamType = STEAM_TYPE_ULTRALIGHT;
+                break;
+            default:
+                this.steamType = STEAM_TYPE_NORMAL;
+                break;
+        }
     }
 
     public String getExecArgs() {
@@ -239,6 +271,14 @@ public class Container {
 
     public void setSdlControllerAPI(boolean sdlControllerAPI) {
         this.sdlControllerAPI = sdlControllerAPI;
+    }
+
+    public String getLanguage() {
+        return language != null ? language : "english";
+    }
+
+    public void setLanguage(String language) {
+        this.language = (language != null && !language.isEmpty()) ? language : "english";
     }
 
     public boolean isWoW64Mode() {
@@ -503,6 +543,14 @@ public class Container {
             // Disable mouse input flag
             data.put("disableMouseInput", disableMouseInput);
             data.put("installPath", installPath);
+            data.put("steamType", steamType);
+            data.put("language", language);
+
+            // Emulated keyboard/mouse controller mappings
+            data.put("emulateKeyboardMouse", emulateKeyboardMouse);
+            if (controllerEmulationBindings != null) {
+                data.put("controllerEmulationBindings", controllerEmulationBindings);
+            }
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -559,6 +607,12 @@ public class Container {
                     break;
                 case "launchRealSteam" :
                     setLaunchRealSteam(data.getBoolean(key));
+                    break;
+                case "steamType" :
+                    setSteamType(data.getString(key));
+                    break;
+                case "language" :
+                    setLanguage(data.getString(key));
                     break;
                 case "inputType" :
                     setInputType(data.getInt(key));
@@ -632,6 +686,12 @@ public class Container {
                 case "installPath":
                     setInstallPath(data.getString(key));
                     break;
+                case "emulateKeyboardMouse":
+                    this.emulateKeyboardMouse = data.getBoolean(key);
+                    break;
+                case "controllerEmulationBindings":
+                    this.controllerEmulationBindings = data.getJSONObject(key);
+                    break;
             }
         }
     }
@@ -692,10 +752,53 @@ public class Container {
             }
 
             data.put("wincomponents", result);
+
+            // Initialize defaults for new emulate keyboard/mouse fields if missing
+            if (!data.has("emulateKeyboardMouse")) {
+                data.put("emulateKeyboardMouse", false);
+            }
+            if (!data.has("controllerEmulationBindings")) {
+                JSONObject defaults = new JSONObject();
+                // Defaults per request
+                defaults.put("L2", "MOUSE_LEFT_BUTTON");
+                defaults.put("R2", "MOUSE_RIGHT_BUTTON");
+                defaults.put("A", "KEY_SPACE");
+                defaults.put("B", "KEY_E");
+                defaults.put("X", "KEY_Q");
+                defaults.put("Y", "KEY_TAB");
+                defaults.put("SELECT", "KEY_ESC");
+                // All others default to NONE
+                defaults.put("L1", "KEY_SHIFT_L");
+                defaults.put("L3", "NONE");
+                defaults.put("R1", "KEY_CTRL_R");
+                defaults.put("R3", "NONE");
+                defaults.put("DPAD_UP", "KEY_UP");
+                defaults.put("DPAD_DOWN", "KEY_DOWN");
+                defaults.put("DPAD_LEFT", "KEY_LEFT");
+                defaults.put("DPAD_RIGHT", "KEY_RIGHT");
+                defaults.put("START", "KEY_ENTER");
+                data.put("controllerEmulationBindings", defaults);
+            }
         }
         catch (JSONException e) {
             Log.e("Container", "Failed to check obsolete or missing properties: " + e);
         }
+    }
+
+    public boolean isEmulateKeyboardMouse() {
+        return emulateKeyboardMouse;
+    }
+
+    public void setEmulateKeyboardMouse(boolean emulate) {
+        this.emulateKeyboardMouse = emulate;
+    }
+
+    public JSONObject getControllerEmulationBindings() {
+        return controllerEmulationBindings;
+    }
+
+    public void setControllerEmulationBindings(JSONObject bindings) {
+        this.controllerEmulationBindings = bindings;
     }
 
     public static String getFallbackCPUList() {

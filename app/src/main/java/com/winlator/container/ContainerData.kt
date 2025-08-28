@@ -22,6 +22,7 @@ data class ContainerData(
     val installPath: String = "",
     val showFPS: Boolean = false,
     val launchRealSteam: Boolean = false,
+    val steamType: String = "normal",
     val cpuList: String = Container.getFallbackCPUList(),
     val cpuListWoW64: String = Container.getFallbackCPUListWoW64(),
     val wow64Mode: Boolean = true,
@@ -49,6 +50,12 @@ data class ContainerData(
     val dinputMapperType: Byte = 1,
     /** Disable external mouse input **/
     val disableMouseInput: Boolean = false,
+    /** Preferred game language (Goldberg) **/
+    val language: String = "english",
+    /** Emulate keyboard/mouse using controller sticks and button bindings **/
+    val emulateKeyboardMouse: Boolean = false,
+    /** Button->Binding name map (JSON string) for emulation UI persistence **/
+    val controllerEmulationBindings: String = "",
 ) {
     companion object {
         val Saver = mapSaver(
@@ -69,6 +76,7 @@ data class ContainerData(
                     "installPath" to state.installPath,
                     "showFPS" to state.showFPS,
                     "launchRealSteam" to state.launchRealSteam,
+                    "steamType" to state.steamType,
                     "cpuList" to state.cpuList,
                     "cpuListWoW64" to state.cpuListWoW64,
                     "wow64Mode" to state.wow64Mode,
@@ -83,6 +91,9 @@ data class ContainerData(
                     "enableDInput" to state.enableDInput,
                     "dinputMapperType" to state.dinputMapperType,
                     "disableMouseInput" to state.disableMouseInput,
+                    "language" to state.language,
+                    "emulateKeyboardMouse" to state.emulateKeyboardMouse,
+                    "controllerEmulationBindings" to state.controllerEmulationBindings,
                 )
             },
             restore = { savedMap ->
@@ -102,6 +113,7 @@ data class ContainerData(
                     installPath = savedMap["installPath"] as String,
                     showFPS = savedMap["showFPS"] as Boolean,
                     launchRealSteam = savedMap["launchRealSteam"] as Boolean,
+                    steamType = (savedMap["steamType"] as? String) ?: "normal",
                     cpuList = savedMap["cpuList"] as String,
                     cpuListWoW64 = savedMap["cpuListWoW64"] as String,
                     wow64Mode = savedMap["wow64Mode"] as Boolean,
@@ -116,6 +128,9 @@ data class ContainerData(
                     enableDInput = savedMap["enableDInput"] as Boolean,
                     dinputMapperType = savedMap["dinputMapperType"] as Byte,
                     disableMouseInput = savedMap["disableMouseInput"] as Boolean,
+                    language = (savedMap["language"] as? String) ?: "english",
+                    emulateKeyboardMouse = (savedMap["emulateKeyboardMouse"] as? Boolean) ?: false,
+                    controllerEmulationBindings = (savedMap["controllerEmulationBindings"] as? String) ?: "",
                 )
             },
         )

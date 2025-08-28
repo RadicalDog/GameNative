@@ -192,7 +192,7 @@ object PrefManager {
 
     private val DRIVES = stringPreferencesKey("drives")
     var drives: String
-        get() = getPref(DRIVES, "")
+        get() = getPref(DRIVES, Container.DEFAULT_DRIVES)
         set(value) {
             setPref(DRIVES, value)
         }
@@ -237,6 +237,13 @@ object PrefManager {
         get() = getPref(STARTUP_SELECTION, Container.STARTUP_SELECTION_ESSENTIAL.toInt())
         set(value) {
             setPref(STARTUP_SELECTION, value)
+        }
+
+    private val CONTAINER_LANGUAGE = stringPreferencesKey("container_language")
+    var containerLanguage: String
+        get() = getPref(CONTAINER_LANGUAGE, "english")
+        set(value) {
+            setPref(CONTAINER_LANGUAGE, value)
         }
 
     private val BOX86_PRESET = stringPreferencesKey("box86_preset")

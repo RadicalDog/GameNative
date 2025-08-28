@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import app.gamenative.BuildConfig
 import app.gamenative.Constants
+import app.gamenative.MainActivity
 import app.gamenative.PluviaApp
 import app.gamenative.PrefManager
 import app.gamenative.enums.AppTheme
@@ -57,6 +59,8 @@ import app.gamenative.ui.screen.settings.SettingsScreen
 import app.gamenative.ui.screen.xserver.XServerScreen
 import app.gamenative.ui.theme.PluviaTheme
 import app.gamenative.utils.ContainerUtils
+import app.gamenative.utils.IntentLaunchManager
+import app.gamenative.R
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
 import com.winlator.xenvironment.ImageFsInstaller
@@ -90,11 +94,80 @@ fun PluviaMain(
 
     var isConnecting by rememberSaveable { mutableStateOf(false) }
 
+    // Process any pending launch request from MainActivity after login
+    LaunchedEffect(SteamService.isLoggedIn) {
+        if (SteamService.isLoggedIn) {
+            MainActivity.consumePendingLaunchRequest()?.let { launchRequest ->
+                Timber.i("[PluviaMain]: Processing pending launch request for app ${launchRequest.appId} (user is now logged in)")
+
+                // Check if the game is installed
+                if (!SteamService.isAppInstalled(launchRequest.appId)) {
+                    val appName = SteamService.getAppInfoOf(launchRequest.appId)?.name ?: "App ${launchRequest.appId}"
+                    Timber.w("[PluviaMain]: Game not installed: $appName (${launchRequest.appId})")
+
+                    // Show error message
+                    msgDialogState = MessageDialogState(
+                        visible = true,
+                        type = DialogType.SYNC_FAIL,
+                        title = context.getString(R.string.game_not_installed_title),
+                        message = context.getString(R.string.game_not_installed_message, appName),
+                        dismissBtnText = context.getString(R.string.ok),
+                    )
+                    return@let
+                }
+
+                if (launchRequest.containerConfig != null) {
+                    IntentLaunchManager.applyTemporaryConfigOverride(
+                        context,
+                        launchRequest.appId,
+                        launchRequest.containerConfig,
+                    )
+                    Timber.i("[PluviaMain]: Applied container config override for app ${launchRequest.appId}")
+                }
+
+                if (navController.currentDestination?.route != PluviaScreen.Home.route) {
+                    navController.navigate(PluviaScreen.Home.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = false
+                        }
+                    }
+                }
+
+                viewModel.setLaunchedAppId(launchRequest.appId)
+                viewModel.setBootToContainer(false)
+                preLaunchApp(
+                    context = context,
+                    appId = launchRequest.appId,
+                    useTemporaryOverride = true,
+                    setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                    setLoadingProgress = viewModel::setLoadingDialogProgress,
+                    setMessageDialogState = setMessageDialogState,
+                    onSuccess = viewModel::launchApp,
+                )
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
                 MainViewModel.MainUiEvent.LaunchApp -> {
                     navController.navigate(PluviaScreen.XServer.route)
+                }
+
+                is MainViewModel.MainUiEvent.ExternalGameLaunch -> {
+                    Timber.i("[PluviaMain]: Received ExternalGameLaunch UI event for app ${event.appId}")
+                    viewModel.setLaunchedAppId(event.appId)
+                    viewModel.setBootToContainer(false)
+                    preLaunchApp(
+                        context = context,
+                        appId = event.appId,
+                        useTemporaryOverride = true,
+                        setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                        setLoadingProgress = viewModel::setLoadingDialogProgress,
+                        setMessageDialogState = setMessageDialogState,
+                        onSuccess = viewModel::launchApp,
+                    )
                 }
 
                 MainViewModel.MainUiEvent.OnBackPressed -> {
@@ -123,36 +196,48 @@ fun PluviaMain(
                                 navController.navigate(PluviaScreen.Overview.route)
                             }
 
-                            // If a crash happen, lets not ask for a tip yet.
-                            // Instead, ask the user to contribute their issues to be addressed.
-                            if (!state.annoyingDialogShown && state.hasCrashedLastStart) {
-                                viewModel.setAnnoyingDialogShown(true)
-                                msgDialogState = MessageDialogState(
-                                    visible = true,
-                                    type = DialogType.CRASH,
-                                    title = "Recent Crash",
-                                    message = "Sorry about that!\n" +
-                                        "It would be nice to know about the recent issue you've had.\n" +
-                                        "You can view and export the most recent crash log in the app's settings " +
-                                        "and attach it as a Github issue in the project's repository.\n" +
-                                        "Link to the Github repo is also in settings!",
-                                    confirmBtnText = "OK",
-                                )
-                            } else if (!(PrefManager.tipped || BuildConfig.GOLD) && !state.annoyingDialogShown) {
-                                viewModel.setAnnoyingDialogShown(true)
-                                msgDialogState = MessageDialogState(
-                                    visible = true,
-                                    type = DialogType.SUPPORT,
-                                    message = "Thank you for using GameNative, please consider supporting " +
-                                        "open-source PC gaming on Android by donating whatever amount is comfortable to you",
-                                    confirmBtnText = "Tip",
-                                    dismissBtnText = "Close",
-                                )
+                                // If a crash happen, lets not ask for a tip yet.
+                                // Instead, ask the user to contribute their issues to be addressed.
+                                if (!state.annoyingDialogShown && state.hasCrashedLastStart) {
+                                    viewModel.setAnnoyingDialogShown(true)
+                                    msgDialogState = MessageDialogState(
+                                        visible = true,
+                                        type = DialogType.CRASH,
+                                        title = "Recent Crash",
+                                        message = "Sorry about that!\n" +
+                                            "It would be nice to know about the recent issue you've had.\n" +
+                                            "You can view and export the most recent crash log in the app's settings " +
+                                            "and attach it as a Github issue in the project's repository.\n" +
+                                            "Link to the Github repo is also in settings!",
+                                        confirmBtnText = context.getString(R.string.ok),
+                                    )
+                                } else if (!(PrefManager.tipped || BuildConfig.GOLD) && !state.annoyingDialogShown) {
+                                    viewModel.setAnnoyingDialogShown(true)
+                                    msgDialogState = MessageDialogState(
+                                        visible = true,
+                                        type = DialogType.SUPPORT,
+                                        message = "Thank you for using GameNative, please consider supporting " +
+                                            "open-source PC gaming on Android by donating whatever amount is comfortable to you",
+                                        confirmBtnText = "Donate",
+                                        dismissBtnText = "Close",
+                                    )
+                                }
                             }
                         }
 
                         else -> Timber.i("Received non-result: ${event.result}")
                     }
+                }
+
+                MainViewModel.MainUiEvent.ShowDiscordSupportDialog -> {
+                    msgDialogState = MessageDialogState(
+                        visible = true,
+                        type = DialogType.DISCORD,
+                        title = "Did the game work?",
+                        message = "Join the Discord to get support to fix your game or improve performance.",
+                        confirmBtnText = "Open Discord",
+                        dismissBtnText = "Close",
+                    )
                 }
             }
         }
@@ -190,12 +275,10 @@ fun PluviaMain(
     }
 
     LaunchedEffect(Unit) {
-        //
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            Timber.d("SteamService isRunning: ${SteamService.isRunning}")
             if (!state.isSteamConnected || !SteamService.isRunning) {
-                Timber.d("Steam not connected - attempt")
-//                isConnecting = true
+                Timber.d("[PluviaMain]: Steam not connected - attempt")
+                isConnecting = true
                 context.startForegroundService(Intent(context, SteamService::class.java))
             }
         }
@@ -204,6 +287,30 @@ fun PluviaMain(
     // Listen for connection state changes
     LaunchedEffect(state.isSteamConnected) {
         Timber.d("Steam connected ${state.isSteamConnected}")
+    }
+
+    // Listen for save container config prompt
+    var pendingSaveAppId by rememberSaveable { mutableStateOf<Int?>(null) }
+    val onPromptSaveConfig: (AndroidEvent.PromptSaveContainerConfig) -> Unit = { event ->
+        pendingSaveAppId = event.appId
+        msgDialogState = MessageDialogState(
+            visible = true,
+            type = DialogType.SAVE_CONTAINER_CONFIG,
+            title = context.getString(R.string.save_container_settings_title),
+            message = context.getString(R.string.save_container_settings_message),
+            confirmBtnText = context.getString(R.string.save),
+            dismissBtnText = context.getString(R.string.discard),
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        PluviaApp.events.on<AndroidEvent.PromptSaveContainerConfig, Unit>(onPromptSaveConfig)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            PluviaApp.events.off<AndroidEvent.PromptSaveContainerConfig, Unit>(onPromptSaveConfig)
+        }
     }
 
     // Timeout if stuck in connecting state for 10 seconds so that its not in loading state forever
@@ -230,6 +337,18 @@ fun PluviaMain(
     val onDismissClick: (() -> Unit)?
     val onConfirmClick: (() -> Unit)?
     when (msgDialogState.type) {
+        DialogType.DISCORD -> {
+            onConfirmClick = {
+                setMessageDialogState(MessageDialogState(false))
+                uriHandler.openUri("https://discord.gg/2hKv4VfZfE")
+            }
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+        }
         DialogType.SUPPORT -> {
             onConfirmClick = {
                 uriHandler.openUri(Constants.Misc.KO_FI_LINK)
@@ -385,6 +504,41 @@ fun PluviaMain(
             }
             onConfirmClick = {
                 viewModel.setHasCrashedLastStart(false)
+                setMessageDialogState(MessageDialogState(false))
+            }
+        }
+
+        DialogType.SAVE_CONTAINER_CONFIG -> {
+            onConfirmClick = {
+                // Save the container config permanently
+                pendingSaveAppId?.let { appId ->
+                    IntentLaunchManager.getEffectiveContainerConfig(context, appId)?.let { config ->
+                        ContainerUtils.applyToContainer(context, appId, config)
+                        Timber.i("[PluviaMain]: Saved container configuration for app $appId")
+                    }
+                    // Clear the temporary override after saving
+                    IntentLaunchManager.clearTemporaryOverride(appId)
+                }
+                pendingSaveAppId = null
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissClick = {
+                // Discard the temporary config and restore original
+                pendingSaveAppId?.let { appId ->
+                    IntentLaunchManager.restoreOriginalConfiguration(context, appId)
+                    IntentLaunchManager.clearTemporaryOverride(appId)
+                    Timber.i("[PluviaMain]: Discarded temporary config and restored original for app $appId")
+                }
+                pendingSaveAppId = null
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                // Treat closing dialog as discard
+                pendingSaveAppId?.let { appId ->
+                    IntentLaunchManager.restoreOriginalConfiguration(context, appId)
+                    IntentLaunchManager.clearTemporaryOverride(appId)
+                }
+                pendingSaveAppId = null
                 setMessageDialogState(MessageDialogState(false))
             }
         }
@@ -546,11 +700,13 @@ fun preLaunchApp(
     appId: Int,
     ignorePendingOperations: Boolean = false,
     preferredSave: SaveLocation = SaveLocation.None,
+    useTemporaryOverride: Boolean = false,
     setLoadingDialogVisible: (Boolean) -> Unit,
     setLoadingProgress: (Float) -> Unit,
     setMessageDialogState: (MessageDialogState) -> Unit,
     onSuccess: KFunction2<Context, Int, Unit>,
     ignoreCloudSaveIssues: Boolean = false,
+    retryCount: Int = 0,
 ) {
     setLoadingDialogVisible(true)
     // TODO: add a way to cancel
@@ -568,13 +724,17 @@ fun preLaunchApp(
         // create container if it does not already exist
         // TODO: combine somehow with container creation in HomeLibraryAppScreen
         val containerManager = ContainerManager(context)
-        val container = ContainerUtils.getOrCreateContainer(context, appId)
+        val container = if (useTemporaryOverride) {
+            ContainerUtils.getOrCreateContainerWithOverride(context, appId)
+        } else {
+            ContainerUtils.getOrCreateContainer(context, appId)
+        }
         // must activate container before downloading save files
         containerManager.activateContainer(container)
 
         // sync save files and check no pending remote operations are running
         val prefixToPath: (String) -> String = { prefix ->
-            PathType.from(prefix).toAbsPath(context, appId)
+            PathType.from(prefix).toAbsPath(context, appId, SteamService.userSteamId!!.accountID)
         }
         val postSyncInfo = SteamService.beginLaunchApp(
             appId = appId,
@@ -603,7 +763,40 @@ fun preLaunchApp(
             }
 
             SyncResult.CloudAccessIssue,
-            SyncResult.InProgress,
+            SyncResult.InProgress -> {
+                if (useTemporaryOverride && retryCount < 5) {
+                    // For intent launches, retry after a short delay (max 5 retries = ~10 seconds)
+                    Timber.i("Sync in progress for intent launch, retrying in 2 seconds... (attempt ${retryCount + 1}/5)")
+                    delay(2000)
+                    preLaunchApp(
+                        context = context,
+                        appId = appId,
+                        ignorePendingOperations = ignorePendingOperations,
+                        preferredSave = preferredSave,
+                        useTemporaryOverride = useTemporaryOverride,
+                        setLoadingDialogVisible = setLoadingDialogVisible,
+                        setLoadingProgress = setLoadingProgress,
+                        setMessageDialogState = setMessageDialogState,
+                        onSuccess = onSuccess,
+                        retryCount = retryCount + 1,
+                    )
+                } else {
+                    val message = if (useTemporaryOverride) {
+                        "Sync operation is taking too long. Please try launching the game again in a moment."
+                    } else {
+                        "Sync is currently in progress. Please try again in a moment."
+                    }
+                    setMessageDialogState(
+                        MessageDialogState(
+                            visible = true,
+                            type = DialogType.SYNC_FAIL,
+                            title = context.getString(R.string.sync_error_title),
+                            message = message,
+                            dismissBtnText = context.getString(R.string.ok),
+                        ),
+                    )
+                }
+            }
             SyncResult.UnknownFail,
             SyncResult.DownloadFail,
             SyncResult.UpdateFail,
@@ -616,7 +809,7 @@ fun preLaunchApp(
                         MessageDialogState(
                             visible = true,
                             type = DialogType.SYNC_FAIL,
-                            title = "Sync Error",
+                            title = context.getString(R.string.sync_error_title),
                             message = "Failed to sync save files: ${postSyncInfo.syncResult.text}.\n\nContinuing can cause sync conflicts and lost data.",
                             dismissBtnText = "Cancel",
                             confirmBtnText = "Launch anyway"
@@ -650,7 +843,7 @@ fun preLaunchApp(
                                         "on the device ${pro.machineName} " +
                                         "(${Date(pro.timeLastUpdated * 1000L)}) and the save of " +
                                         "that session is still uploading.\nTry again later.",
-                                    dismissBtnText = "Ok",
+                                    dismissBtnText = context.getString(R.string.ok),
                                 ),
                             )
                         }
@@ -701,9 +894,9 @@ fun preLaunchApp(
                                 MessageDialogState(
                                     visible = true,
                                     type = DialogType.APP_SESSION_SUSPENDED,
-                                    title = "Sync Error",
+                                    title = context.getString(R.string.sync_error_title),
                                     message = "App session suspended. Please restart app.",
-                                    dismissBtnText = "Ok",
+                                    dismissBtnText = context.getString(R.string.ok),
                                 ),
                             )
                         }
@@ -714,9 +907,9 @@ fun preLaunchApp(
                                 MessageDialogState(
                                     visible = true,
                                     type = DialogType.PENDING_OPERATION_NONE,
-                                    title = "Sync Error",
+                                    title = context.getString(R.string.sync_error_title),
                                     message = "Received pending remote operations whose operation was 'none'. Please restart app.",
-                                    dismissBtnText = "Ok",
+                                    dismissBtnText = context.getString(R.string.ok),
                                 ),
                             )
                         }
@@ -727,9 +920,9 @@ fun preLaunchApp(
                         MessageDialogState(
                             visible = true,
                             type = DialogType.MULTIPLE_PENDING_OPERATIONS,
-                            title = "Sync Error",
+                            title = context.getString(R.string.sync_error_title),
                             message = "Multiple pending remote operations, try again later. Please restart app.",
-                            dismissBtnText = "Ok",
+                            dismissBtnText = context.getString(R.string.ok),
                         ),
                     )
                 }

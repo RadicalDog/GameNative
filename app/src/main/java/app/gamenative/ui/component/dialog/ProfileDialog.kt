@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Cyclone
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,6 +62,7 @@ fun ProfileDialog(
         onDismissRequest = onDismiss,
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                val uriHandler = LocalUriHandler.current
                 /* Icon, Name, and Status */
                 ListItem(
                     colors = ListItemDefaults.colors(
@@ -114,6 +117,12 @@ fun ProfileDialog(
                     Icon(imageVector = Icons.Default.Settings, contentDescription = null)
                     Spacer(modifier = Modifier.size(ButtonDefaults.IconSize))
                     Text(text = "Settings")
+                }
+
+                FilledTonalButton(modifier = Modifier.fillMaxWidth(), onClick = { uriHandler.openUri("https://discord.gg/2hKv4VfZfE") }) {
+                    Icon(imageVector = Icons.Default.Help, contentDescription = null)
+                    Spacer(modifier = Modifier.size(ButtonDefaults.IconSize))
+                    Text(text = "Help & Support")
                 }
 
                 FilledTonalButton(modifier = Modifier.fillMaxWidth(), onClick = onLogout) {

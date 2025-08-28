@@ -2,7 +2,10 @@ package app.gamenative.ui.screen.xserver
 
 import android.app.Activity
 import android.content.Context
+import android.os.Build
 import android.view.View
+import android.view.WindowInsets
+import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +23,11 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.gamenative.PluviaApp
@@ -57,6 +64,8 @@ import com.winlator.core.WineThemeManager
 import com.winlator.core.WineUtils
 import com.winlator.core.envvars.EnvVars
 import com.winlator.inputcontrols.ControlsProfile
+import com.winlator.inputcontrols.ControlElement
+import com.winlator.inputcontrols.Binding
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.inputcontrols.TouchMouse
@@ -89,6 +98,7 @@ import com.winlator.xserver.XServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
@@ -120,6 +130,10 @@ fun XServerScreen(
 ) {
     Timber.i("Starting up XServerScreen")
     val context = LocalContext.current
+    val view = LocalView.current
+    val imm = remember(context) {
+        context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    }
 
     // PluviaApp.events.emit(AndroidEvent.SetAppBarVisibility(false))
     PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(false))
@@ -139,6 +153,7 @@ fun XServerScreen(
     val xServerState = rememberSaveable(stateSaver = XServerState.Saver) {
         if (ContainerUtils.hasContainer(context, appId)) {
             val container = ContainerUtils.getContainer(context, appId)
+            // Emulation wiring moved to InputControlsView init block
             mutableStateOf(
                 XServerState(
                     graphicsDriver = container.graphicsDriver,
@@ -190,6 +205,22 @@ fun XServerScreen(
     var areControlsVisible = false
 
     BackHandler {
+        val imeVisible = ViewCompat.getRootWindowInsets(view)
+            ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+
+        if (imeVisible) {
+            PostHog.capture(event = "onscreen_keyboard_disabled")
+            view.post {
+                if (Build.VERSION.SDK_INT >= 30) {
+                    view.windowInsetsController?.hide(WindowInsets.Type.ime())
+                } else {
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    if (view.windowToken != null) imm.hideSoftInputFromWindow(view.windowToken, 0)
+                }
+            }
+            return@BackHandler
+        }
+
         Timber.i("BackHandler")
         NavigationDialog(
             context,
@@ -197,9 +228,22 @@ fun XServerScreen(
                 override fun onNavigationItemSelected(itemId: Int) {
                     when (itemId) {
                         NavigationDialog.ACTION_KEYBOARD -> {
-                            // Toggle keyboard using InputMethodManager
-                            PostHog.capture(event = "onscreen_keyboard_enabled")
-                            showKeyboard(context);
+                            val anchor = view // use the same composable root view
+                            val c = if (Build.VERSION.SDK_INT >= 30)
+                                anchor.windowInsetsController else null
+
+                            anchor.post {
+                                if (anchor.windowToken == null) return@post
+                                val show = {
+                                    PostHog.capture(event = "onscreen_keyboard_enabled")
+                                    imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+                                }
+                                if (Build.VERSION.SDK_INT > 29 && c != null) {
+                                    anchor.postDelayed({ show() }, 500)  // Pixel/Android-12+ quirk
+                                } else {
+                                    show()
+                                }
+                            }
                         }
 
                         NavigationDialog.ACTION_INPUT_CONTROLS -> {
@@ -210,7 +254,15 @@ fun XServerScreen(
                                 PostHog.capture(event = "onscreen_controller_enabled")
                                 val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
                                 if (profiles.isNotEmpty()) {
-                                    showInputControls(profiles[2])
+                                    val container = ContainerUtils.getContainer(context, appId)
+                                    val targetProfile = if (container.isEmulateKeyboardMouse()) {
+                                        val profileName = container.id.toString()
+                                        profiles.firstOrNull { it.name == profileName }
+                                            ?: ContainerUtils.generateOrUpdateEmulationProfile(context, container)
+                                    } else {
+                                        profiles[2]
+                                    }
+                                    showInputControls(targetProfile)
                                 }
                             }
                             areControlsVisible = !areControlsVisible
@@ -249,7 +301,13 @@ fun XServerScreen(
 
             var handled = false
             if (isGamepad) {
-                handled = xServerView!!.getxServer().winHandler.onKeyEvent(it.event)
+                val emulate = try { ContainerUtils.getContainer(context, appId).isEmulateKeyboardMouse() } catch (_: Exception) { false }
+                if (emulate) {
+                    handled = PluviaApp.inputControlsView?.onKeyEvent(it.event) == true
+                    if (!handled) handled = xServerView!!.getxServer().winHandler.onKeyEvent(it.event)
+                } else {
+                    handled = xServerView!!.getxServer().winHandler.onKeyEvent(it.event)
+                }
                 // handled = ExternalController.onKeyEvent(xServer.winHandler, it.event)
             }
             if (!handled && isKeyboard) {
@@ -262,7 +320,13 @@ fun XServerScreen(
 
             var handled = false
             if (isGamepad) {
-                handled = xServerView!!.getxServer().winHandler.onGenericMotionEvent(it.event)
+                val emulate = try { ContainerUtils.getContainer(context, appId).isEmulateKeyboardMouse() } catch (_: Exception) { false }
+                if (emulate) {
+                    handled = PluviaApp.inputControlsView?.onGenericMotionEvent(it.event) == true
+                    if (!handled) handled = xServerView!!.getxServer().winHandler.onGenericMotionEvent(it.event)
+                } else {
+                    handled = xServerView!!.getxServer().winHandler.onGenericMotionEvent(it.event)
+                }
             }
             if (!handled) {
                 handled = PluviaApp.touchpadView?.onExternalMouseEvent(it.event) == true
@@ -331,9 +395,14 @@ fun XServerScreen(
             //     PluviaApp.xServer = XServer(ScreenInfo(xServerState.value.screenSize))
             // }
             val frameLayout = FrameLayout(context)
+            val existingXServer =
+                PluviaApp.xEnvironment
+                    ?.getComponent<XServerComponent>(XServerComponent::class.java)
+                    ?.xServer
+            val xServerToUse = existingXServer ?: XServer(ScreenInfo(xServerState.value.screenSize))
             val xServerView = XServerView(
                 context,
-                XServer(ScreenInfo(xServerState.value.screenSize)),
+                xServerToUse,
             ).apply {
                 xServerView = this
                 // pointerEventListener = object: Callback<MotionEvent> {
@@ -442,13 +511,7 @@ fun XServerScreen(
                     },
                 )
 
-                if (PluviaApp.xEnvironment != null) {
-                    PluviaApp.xEnvironment = shiftXEnvironmentToContext(
-                        context,
-                        xEnvironment = PluviaApp.xEnvironment!!,
-                        getxServer(),
-                    )
-                } else {
+                if (PluviaApp.xEnvironment == null) {
                     val containerManager = ContainerManager(context)
                     val container = ContainerUtils.getContainer(context, appId)
                     // Configure WinHandler with container's input API settings
@@ -556,15 +619,22 @@ fun XServerScreen(
                 setXServer(xServerView.getxServer())
                 setTouchpadView(PluviaApp.touchpadView)
 
-                // Load a default controls profile
+                // Load default profile for now; may be overridden by container settings below
                 val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
+                PrefManager.init(context)
                 if (profiles.isNotEmpty()) {
-                    // Set to id 2 if it exists, backup is 0
-                    setProfile(profiles.getOrElse(2) { profiles[0] })
+                    val container = ContainerUtils.getContainer(context, appId)
+                    val targetProfile = if (container.isEmulateKeyboardMouse()) {
+                        val profileName = container.id.toString()
+                        profiles.firstOrNull { it.name == profileName }
+                            ?: ContainerUtils.generateOrUpdateEmulationProfile(context, container)
+                    } else {
+                        profiles[2]
+                    }
+                    setProfile(targetProfile)
                 }
 
                 // Set overlay opacity from preferences if needed
-                PrefManager.init(context)
                 val opacity = PrefManager.getFloat("controls_opacity", InputControlsView.DEFAULT_OVERLAY_OPACITY)
                 setOverlayOpacity(opacity)
             }
@@ -575,15 +645,28 @@ fun XServerScreen(
             // Add InputControlsView on top of XServerView
             frameLayout.addView(icView)
             hideInputControls()
-            // Show on-screen controls if no physical controller is connected
-            if (ExternalController.getController(0) == null) {
-                val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
-                if (profiles.size > 2) {
-                    showInputControls(profiles[2])
-                    areControlsVisible = true
+            val container = ContainerUtils.getContainer(context, appId)
+
+            // If emulation is enabled, select the per-container profile (named by container id)
+            if (container.isEmulateKeyboardMouse()) {
+                val profiles2 = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
+                val profileName = container.id.toString()
+                var target = profiles2.firstOrNull { it.name == profileName }
+                if (target == null) {
+                    target = ContainerUtils.generateOrUpdateEmulationProfile(context, container)
+                }
+                PluviaApp.inputControlsView?.setProfile(target)
+                PluviaApp.inputControlsView?.invalidate()
+            } else {
+                // Show on-screen controls if no physical controller is connected (respect current profile)
+                if (ExternalController.getController(0) == null) {
+                    val profiles2 = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
+                    if (profiles2.size > 2) {
+                        showInputControls(profiles2[2])
+                        areControlsVisible = true
+                    }
                 }
             }
-            val container = ContainerUtils.getContainer(context, appId)
 
             if (container.isShowFPS()) {
                 Timber.i("Attempting to show FPS")
@@ -622,6 +705,86 @@ fun XServerScreen(
     //
     //     }
     // }
+}
+
+private fun emulateKeyboardMouseOnscreen(
+    container: Container,
+    profiles: List<ControlsProfile>,
+    context: Context,
+): ControlsProfile? {
+    val bindingsJson = container.controllerEmulationBindings
+    val emuJson = if (bindingsJson != null) JSONObject(bindingsJson.toString()) else null
+    val baseProfile = profiles.firstOrNull { it.id == 3 || it.name.contains("Virtual Gamepad", true) }
+        ?: profiles.getOrNull(2)
+        ?: profiles.first()
+    val baseFile = ControlsProfile.getProfileFile(context, baseProfile.id)
+    val profileJSONObject = JSONObject(FileUtils.readString(baseFile))
+    val elementsJSONArray = profileJSONObject.getJSONArray("elements")
+
+    fun optBinding(key: String, fallback: String): String {
+        return emuJson?.optString(key, fallback) ?: fallback
+    }
+
+    for (i in 0 until elementsJSONArray.length()) {
+        val e = elementsJSONArray.getJSONObject(i)
+        val type = e.getString("type")
+        val bindings = e.getJSONArray("bindings")
+        if (type == "D_PAD") {
+            bindings.put(0, optBinding("DPAD_UP", bindings.getString(0)))
+            bindings.put(1, optBinding("DPAD_RIGHT", bindings.getString(1)))
+            bindings.put(2, optBinding("DPAD_DOWN", bindings.getString(2)))
+            bindings.put(3, optBinding("DPAD_LEFT", bindings.getString(3)))
+        } else if (type == "STICK") {
+            val b0 = bindings.getString(0)
+            if (b0.startsWith("GAMEPAD_LEFT_THUMB")) {
+                bindings.put(0, "KEY_W")
+                bindings.put(1, "KEY_D")
+                bindings.put(2, "KEY_S")
+                bindings.put(3, "KEY_A")
+            } else if (b0.startsWith("GAMEPAD_RIGHT_THUMB")) {
+                bindings.put(0, "MOUSE_MOVE_UP")
+                bindings.put(1, "MOUSE_MOVE_RIGHT")
+                bindings.put(2, "MOUSE_MOVE_DOWN")
+                bindings.put(3, "MOUSE_MOVE_LEFT")
+            }
+        } else if (type == "BUTTON") {
+            val b0 = bindings.getString(0)
+            val logical = when (b0) {
+                "GAMEPAD_BUTTON_A" -> "A"
+                "GAMEPAD_BUTTON_B" -> "B"
+                "GAMEPAD_BUTTON_X" -> "X"
+                "GAMEPAD_BUTTON_Y" -> "Y"
+                "GAMEPAD_BUTTON_L1" -> "L1"
+                "GAMEPAD_BUTTON_L2" -> "L2"
+                "GAMEPAD_BUTTON_L3" -> "L3"
+                "GAMEPAD_BUTTON_R1" -> "R1"
+                "GAMEPAD_BUTTON_R2" -> "R2"
+                "GAMEPAD_BUTTON_R3" -> "R3"
+                "GAMEPAD_BUTTON_START" -> "START"
+                "GAMEPAD_BUTTON_SELECT" -> "SELECT"
+                else -> null
+            }
+            if (logical != null) {
+                val mapped = optBinding(logical, "NONE")
+                bindings.put(0, mapped)
+                bindings.put(1, "NONE")
+                bindings.put(2, "NONE")
+                bindings.put(3, "NONE")
+            }
+        }
+    }
+
+    val targetProfile = profiles.firstOrNull { it.name == "Keyboard & Mouse Gamepad" }
+        ?: PluviaApp.inputControlsManager?.duplicateProfile(baseProfile)?.apply {
+            setName("Keyboard & Mouse Gamepad")
+            save()
+        }
+        ?: baseProfile
+    // Log final JSON and persist to target profile file
+    Timber.d("Final emulated profile JSON: %s", profileJSONObject.toString())
+    val targetFile = ControlsProfile.getProfileFile(context, targetProfile.id)
+    FileUtils.writeString(targetFile, profileJSONObject.toString())
+    return targetProfile
 }
 
 private fun showInputControls(profile: ControlsProfile) {
@@ -878,7 +1041,10 @@ private fun setupXEnvironment(
     val usrGlibc: Boolean = PrefManager.getBoolean("use_glibc", true)
     val guestProgramLauncherComponent = if (usrGlibc) {
         Timber.i("Setting guestProgramLauncherComponent to GlibcProgarmLauncherComponent")
-        GlibcProgramLauncherComponent(contentsManager, contentsManager.getProfileByEntryName(container.wineVersion))
+        GlibcProgramLauncherComponent(
+            contentsManager,
+            contentsManager.getProfileByEntryName(container.wineVersion),
+        )
     }
     else {
         Timber.i("Setting guestProgramLauncherComponent to GuestProgramLauncherComponent")
@@ -895,6 +1061,8 @@ private fun setupXEnvironment(
             (if (container.execArgs.isNotEmpty()) " " + container.execArgs else "")
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
+        // Set steam type for selecting appropriate box64rc
+        guestProgramLauncherComponent.setSteamType(container.getSteamType())
 
         envVars.putAll(container.envVars)
         if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1")
@@ -1027,8 +1195,8 @@ private fun getWineStartCommand(
         // Check if we should launch through real Steam
         if (container.isLaunchRealSteam()) {
             // Launch Steam with the applaunch parameter to start the game
-            "\"C:\\\\Program Files (x86)\\\\Steam\\\\steam.exe\" -silent -vgui -no-browser -tcp " +
-                    "-nobigpicture -nobootstrapupdate -skipinitialbootstrap -nofriendsui -nochatui -nointro -applaunch $appId"
+            "\"C:\\\\Program Files (x86)\\\\Steam\\\\steam.exe\" -silent -vgui -tcp " +
+                    "-nobigpicture -nofriendsui -nochatui -nointro -applaunch $appId"
         } else {
             // Original logic for direct game launch
             val appDirPath = SteamService.getAppDirPath(appId)

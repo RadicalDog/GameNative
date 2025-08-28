@@ -103,6 +103,12 @@ object SteamAutoCloud {
                     modified = modified.replace(it.first, it.second)
                 }
 
+                // if the prefix has not been modified then there were no placeholders in it
+                // so we need to set it to point to the default path
+                if (modified == prefix) {
+                    modified = Paths.get(prefixToPath(PathType.DEFAULT.name), modified).toString()
+                }
+
                 modified
             }
         }
@@ -111,7 +117,7 @@ object SteamAutoCloud {
             if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
                 Paths.get(fileList.pathPrefixes[file.pathPrefixIndex]).pathString
             } else {
-                Paths.get("%${PathType.DEFAULT.name}%").pathString
+                ""
             }
         }
 
@@ -125,7 +131,8 @@ object SteamAutoCloud {
             if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
                 Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
             } else {
-                Paths.get(getAppDirPath(appInfo.id), file.filename)
+                // if the file does not reference any prefix then we need to set it to the default path
+                Paths.get(prefixToPath(PathType.DEFAULT.name), file.filename)
             }
         }
 
@@ -178,55 +185,59 @@ object SteamAutoCloud {
                 }
             }
 
-        // val hasHashConflictsOrRemoteMissingFiles: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean =
-        //     { localUserFiles, fileList ->
-        //         localUserFiles.values.any {
-        //             it.any { localUserFile ->
-        //                 fileList.files.firstOrNull { cloudFile ->
-        //                     val cloudFilePath = getFilePrefixPath(cloudFile, fileList)
-        //
-        //                     val localFilePath = Paths.get(
-        //                         localUserFile.prefix,
-        //                         localUserFile.filename,
-        //                     ).pathString
-        //
-        //                     Timber.i("Comparing $cloudFilePath and $localFilePath")
-        //
-        //                     cloudFilePath == localFilePath
-        //                 }?.let {
-        //                     Timber.i("Comparing SHA of ${getFilePrefixPath(it, fileList)} and ${localUserFile.prefixPath}")
-        //                     Timber.i("[${it.shaFile.joinToString(", ")}]\n[${localUserFile.sha.joinToString(", ")}]")
-        //
-        //                     it.shaFile.contentEquals(localUserFile.sha)
-        //                 } != true
-        //             }
-        //         }
-        //     }
-
         val getLocalUserFilesAsPrefixMap: () -> Map<String, List<UserFileInfo>> = {
-            appInfo.ufs.saveFilePatterns
-                .filter { userFile -> userFile.root.isWindows }
-                .associate { userFile ->
-                    // Fix for the possibility that the user's Steam ID is needed for the path
-                    if (userFile.path.contains("{Steam3AccountID}")) {
-                        Timber.d("Cloud saves should be under Steam user: ${PrefManager.steamUserAccountId}")
-                        userFile.path = userFile.path.replace("{Steam3AccountID}", PrefManager.steamUserAccountId.toString())
-                    }
+            val savePatterns = appInfo.ufs.saveFilePatterns.filter { userFile -> userFile.root.isWindows }
 
+            if (savePatterns.isNotEmpty()) {
+                savePatterns.associate { userFile ->
+                    val basePath = Paths.get(prefixToPath(userFile.root.toString()), userFile.path)
 
-                    val files = FileUtils.findFiles(
-                        Paths.get(prefixToPath(userFile.root.toString()), userFile.path),
-                        userFile.pattern,
+                    Timber.i("Looking for saves in $basePath with pattern ${userFile.pattern} (prefix ${userFile.prefix})")
+
+                    val files = FileUtils.findFilesRecursive(
+                        rootPath = basePath,
+                        pattern = userFile.pattern,
+                        maxDepth = 5,
                     ).map {
                         val sha = CryptoHelper.shaHash(Files.readAllBytes(it))
 
                         Timber.i("Found ${it.pathString}\n\tin ${userFile.prefix}\n\twith sha [${sha.joinToString(", ")}]")
 
-                        UserFileInfo(userFile.root, userFile.path, it.name, Files.getLastModifiedTime(it).toMillis(), sha)
-                    }
+                        val relativePath = basePath.relativize(it).pathString
+
+                        UserFileInfo(userFile.root, userFile.path, relativePath, Files.getLastModifiedTime(it).toMillis(), sha)
+                    }.collect(Collectors.toList())
+
+                    Timber.i("Found ${files.size} file(s) in $basePath for pattern ${userFile.pattern}")
 
                     Paths.get(userFile.prefix).pathString to files
                 }
+            } else {
+                // Fallback: no UFS patterns; scan SteamUserData root recursively (depth 5)
+                val rootType = PathType.SteamUserData
+                val basePath = Paths.get(prefixToPath(rootType.toString()))
+
+                Timber.i("No UFS patterns; scanning $basePath recursively (depth 5) under ${rootType.name}")
+
+                val files = FileUtils.findFilesRecursive(
+                    rootPath = basePath,
+                    pattern = "*",
+                    maxDepth = 5,
+                ).map {
+                    val sha = CryptoHelper.shaHash(Files.readAllBytes(it))
+
+                    val relativePath = basePath.relativize(it).pathString
+
+                    Timber.i("Found ${it.pathString}\n\tin %${rootType.name}%\n\twith sha [${sha.joinToString(", ")}]")
+
+                    // Store relative path in filename; empty path component
+                    UserFileInfo(rootType, "", relativePath, Files.getLastModifiedTime(it).toMillis(), sha)
+                }.collect(Collectors.toList())
+
+                Timber.i("Found ${files.size} file(s) in $basePath for fallback recursive scan")
+
+                mapOf(Paths.get("%${rootType.name}%").pathString to files)
+            }
         }
 
         val fileChangeListToUserFiles: (AppFileChangeList) -> List<UserFileInfo> = { appFileListChange ->
@@ -256,23 +267,10 @@ object SteamAutoCloud {
             "$scheme${urlHost}$urlPath"
         }
 
-        // val prootTimestampToDate: (Long) -> Date = { originalTimestamp ->
-        //     val androidTimestamp = System.currentTimeMillis()
-        //     val prootTimestamp = getProotTime(steamInstance)
-        //     val timeDifference = androidTimestamp - prootTimestamp
-        //     val adjustedTimestamp = originalTimestamp + timeDifference
-        //
-        //     Timber.i("Android: $androidTimestamp, PRoot: $prootTimestamp, $originalTimestamp -> $adjustedTimestamp")
-        //
-        //     Date(adjustedTimestamp)
-        // }
-
         val downloadFiles: (AppFileChangeList, CoroutineScope) -> Deferred<UserFilesDownloadResult> = { fileList, parentScope ->
             parentScope.async {
                 var filesDownloaded = 0
                 var bytesDownloaded = 0L
-
-                // val convertedPrefixes = convertPrefixes(fileList)
 
                 fileList.files.forEach { file ->
                     val prefixedPath = getFilePrefixPath(file, fileList)
@@ -380,6 +378,8 @@ object SteamAutoCloud {
                 val filesToUpload = fileChanges.filesCreated
                     .union(fileChanges.filesModified)
                     .map { it.prefixPath to it }
+                    // Filter out entries whose files no longer exist at upload time
+                    .filter { Files.exists(it.second.getAbsPath(prefixToPath)) }
 
                 Timber.i(
                     "Beginning app upload batch with ${filesToDelete.size} file(s) to delete " +
@@ -401,7 +401,13 @@ object SteamAutoCloud {
                 filesToUpload.map { it.second }.forEach { file ->
                     val absFilePath = file.getAbsPath(prefixToPath)
 
-                    val fileSize = Files.size(absFilePath).toInt()
+                    val fileSize = try {
+                        Files.size(absFilePath).toInt()
+                    } catch (e: Exception) {
+                        Timber.w("Skipping upload of ${file.prefixPath}: ${e.javaClass.simpleName}: ${e.message}")
+                        uploadBatchSuccess = false
+                        return@forEach
+                    }
 
                     Timber.i("Beginning upload of ${file.prefixPath} whose timestamp is ${file.timestamp}")
 
@@ -696,8 +702,8 @@ object SteamAutoCloud {
 
                             SaveLocation.None -> {
                                 syncResult = SyncResult.Conflict
-                                remoteTimestamp = appFileListChange.files.map { it.timestamp.time }.max()
-                                localTimestamp = allLocalUserFiles.map { it.timestamp }.max()
+                                remoteTimestamp = appFileListChange.files.map { it.timestamp.time }.maxOrNull() ?: 0L
+                                localTimestamp = allLocalUserFiles.map { it.timestamp }.maxOrNull() ?: 0L
                             }
                         }
                     }
