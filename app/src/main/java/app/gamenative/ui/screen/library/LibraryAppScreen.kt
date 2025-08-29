@@ -511,7 +511,7 @@ fun AppScreen(
                         confirmBtnText = context.getString(R.string.yes),
                         dismissBtnText = context.getString(R.string.no),
                     )
-                } else if (SteamService.hasPartialDownload(appId)) {
+                } else if (SteamService.hasPartialDownload(appId) && !isInstalled) {
                     // Resume incomplete download
                     CoroutineScope(Dispatchers.IO).launch {
                         downloadInfo = SteamService.downloadApp(appId)

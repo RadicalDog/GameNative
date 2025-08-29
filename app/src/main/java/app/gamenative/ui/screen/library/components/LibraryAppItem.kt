@@ -59,7 +59,7 @@ internal fun AppItem(
     val downloadProgress = remember(downloadInfo) { downloadInfo?.getProgress() ?: 0f }
     val isDownloading = downloadInfo != null && downloadProgress < 1f
     val isInstalled = remember(appInfo.appId) {
-        SteamService.isAppInstalled(appInfo.appId)
+        appInfo.isInstalled || SteamService.isAppInstalled(appInfo.appId)
     }
 
     var appSizeOnDisk by remember { mutableStateOf("") }
