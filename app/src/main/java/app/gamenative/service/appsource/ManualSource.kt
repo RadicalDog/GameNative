@@ -44,7 +44,8 @@ object ManualSource : AppSourceInterface {
             iconHash = "",
             isShared = false,
             downloadFolder = downloadFolder,
-            downloadedPercent = 100,
+            downloadProgress = 1f,
+            isInstalled = true,
         )
         DaoService.db.appDao().insert(lib)
         Timber.d("Added template manual app for $guessGameName")

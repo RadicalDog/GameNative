@@ -5,6 +5,7 @@ import app.gamenative.data.ConfigInfo
 import app.gamenative.data.LibraryAssetsInfo
 import app.gamenative.data.LibraryCapsuleInfo
 import app.gamenative.data.LibraryHeroInfo
+import app.gamenative.data.LibraryItem
 import app.gamenative.data.LibraryLogoInfo
 import app.gamenative.data.SteamApp
 import app.gamenative.data.UFS
@@ -12,6 +13,7 @@ import app.gamenative.enums.AppType
 import app.gamenative.enums.ControllerSupport
 import app.gamenative.enums.OS
 import app.gamenative.enums.ReleaseState
+import app.gamenative.enums.Source
 import java.util.EnumSet
 
 /**
@@ -91,5 +93,22 @@ internal fun fakeAppInfo(idx: Int): SteamApp {
             maxNumFiles = 0,
             saveFilePatterns = emptyList(),
         ),
+    )
+}
+
+internal fun fakeAppManual(idx: Int): LibraryItem {
+    if (!BuildConfig.DEBUG) {
+        throw RuntimeException("Fake app info shouldn't be used in release")
+    }
+
+    return LibraryItem(
+        name = "BearAndBreakfast",
+        appId = (Math.random() * 10000).toInt(),
+        source = Source.MANUAL,
+        iconHash = "",
+        isShared = false,
+        downloadFolder = "/storage/3531-3961/myFolder/BearAndBreakfast/BearAndBreakfast.exe",
+        downloadProgress = 1f,
+        isInstalled = true,
     )
 }

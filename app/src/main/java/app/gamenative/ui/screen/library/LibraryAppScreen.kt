@@ -131,6 +131,7 @@ import app.gamenative.utils.MarkerUtils
 import app.gamenative.enums.Source
 import app.gamenative.service.AppSourceService
 import app.gamenative.service.appsource.AppSourceInterface
+import app.gamenative.ui.internal.fakeAppManual
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -191,10 +192,10 @@ fun AppScreen(
         mutableStateOf(SteamService.getAppDownloadInfo(appId))
     }
     var downloadProgress by remember(appId) {
-        mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f)
+        mutableFloatStateOf(downloadInfo?.getProgress() ?: appInfo.downloadProgress)
     }
     var isInstalled by remember(appId) {
-        mutableStateOf(SteamService.isAppInstalled(appId))
+        mutableStateOf(appInfo.isInstalled || SteamService.isAppInstalled(appId))
     }
 
     val isValidToDownload by remember(appId) {
@@ -1034,7 +1035,7 @@ private fun AppScreenContent(
             ) {
                 // Pause/Resume and Delete when downloading or paused
                 // Determine if there's a partial download (in-session or from ungraceful close)
-                val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || SteamService.hasPartialDownload(appInfo.appId)
+                val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || (appInfo.source == Source.STEAM && SteamService.hasPartialDownload(appInfo.appId))
                 // Disable resume when Wi-Fi only is enabled and there's no Wi-Fi
                 val isResume = !isDownloading && isPartiallyDownloaded
                 val pauseResumeEnabled = if (isResume) wifiAllowed else true
@@ -1067,11 +1068,10 @@ private fun AppScreenContent(
                     }
                 } else {
                     // Disable install when Wi-Fi only is enabled and there's no Wi-Fi
-                    val isInstall = !isInstalled
-                    val installEnabled = if (isInstall) wifiAllowed && hasInternet else true
+                    val installEnabled = if (!isInstalled) wifiAllowed && hasInternet else true
                     // Install or Play button
                     Button(
-                        enabled = installEnabled && isValidToDownload,
+                        enabled = (installEnabled && isValidToDownload) || isInstalled,
                         modifier = Modifier.weight(1f),
                         onClick = {
                             // Stop heavy operations first
@@ -1512,6 +1512,44 @@ private fun Preview_AppScreen() {
                 isValidToDownload = true,
                 isDownloading = isDownloading,
                 downloadProgress = .50f,
+                onDownloadInstallClick = { isDownloading = !isDownloading },
+                onPauseResumeClick = { },
+                onDeleteDownloadClick = { },
+                onUpdateClick = { },
+                optionsMenu = AppOptionMenuType.entries.map {
+                    AppMenuOption(
+                        optionType = it,
+                        onClick = { },
+                    )
+                }.toTypedArray(),
+            )
+        }
+    }
+}
+
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
+@Preview(
+    device = "spec:width=1920px,height=1080px,dpi=440",
+    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
+) // Odin2 Mini
+@Composable
+private fun Preview_AppScreen_Manual() {
+    val context = LocalContext.current
+    PrefManager.init(context)
+    val intent = Intent(context, SteamService::class.java)
+    context.startForegroundService(intent)
+    var isDownloading by remember { mutableStateOf(false) }
+
+    val item = fakeAppManual(1)
+    PluviaTheme {
+        Surface {
+            AppScreenContent(
+                appInfo = item,
+                isInstalled = true,
+                isValidToDownload = true,
+                isDownloading = isDownloading,
+                downloadProgress = 1f,
                 onDownloadInstallClick = { isDownloading = !isDownloading },
                 onPauseResumeClick = { },
                 onDeleteDownloadClick = { },

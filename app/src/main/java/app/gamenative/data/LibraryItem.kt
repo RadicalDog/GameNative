@@ -36,9 +36,11 @@ data class LibraryItem(
 
     // Nonessential
     val lastPlayed: Int = 0,
-    val downloadedPercent: Int = 0,
+    val isInstalled: Boolean = false,
+    val downloadProgress: Float = 0f,
     val downloadFolder: String = "",
     val downloadFolderName: String = "",
+    val onExternal: Boolean = false,
     val sizeOnDisk: Long = 0, // Assumed untrustworthy; fill this often
 
     // User created info
