@@ -226,7 +226,6 @@ fun AppScreen(
     DisposableEffect(downloadInfo) {
         val onDownloadProgress: (Float) -> Unit = {
             if (it >= 1f) {
-                isInstalled = SteamService.isAppInstalled(appId)
                 downloadInfo = null
                 isInstalled = true
                 MarkerUtils.addMarker(getAppDirPath(appId), Marker.DOWNLOAD_COMPLETE_MARKER)

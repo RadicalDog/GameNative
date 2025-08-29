@@ -667,6 +667,7 @@ fun PluviaMain(
                     onNavigateRoute = {
                         navController.navigate(it)
                     },
+                    onBack = { navController.navigateUp() },
                 )
             }
         }
