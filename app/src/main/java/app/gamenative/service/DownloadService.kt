@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Context.CONNECTIVITY_SERVICE
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import app.gamenative.data.LibraryItem
 import app.gamenative.utils.StorageUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -50,17 +51,24 @@ object DownloadService {
         return StorageUtils.formatBinarySize(installBytes)
     }
 
-    suspend fun getSizeOnDiskDisplay (appId: Int, setResult: (String) -> Unit) {
+    suspend fun getSizeOnDiskDisplay (libraryItem: LibraryItem, setResult: (String) -> Unit) {
         // Outputs "3.76GiB" etc to the result lambda without locking up the main thread
         withContext(Dispatchers.IO) {
-            // Do it async
-            if (SteamService.isAppInstalled(appId)) {
-                val appSizeText = StorageUtils.formatBinarySize(
-                    StorageUtils.getFolderSize(SteamService.getAppDirPath(appId))
-                )
+            // Set from what we know, if it's been set before
+            if (libraryItem.sizeOnDisk > 0) {
+                setResult(StorageUtils.formatBinarySize(libraryItem.sizeOnDisk))
+            }
 
-                Timber.d("Finding $appId size on disk $appSizeText")
+            if (libraryItem.downloadProgress > 0) {
+                // Has downloaded more than nothing, so count the size as it is now
+                val bytes = StorageUtils.getFolderSize(libraryItem.workingDirectory)
+                val updatedItem = libraryItem.copy(sizeOnDisk = bytes)
+                DaoService.db.appDao().update(updatedItem)
+
+                // Update the output again
+                val appSizeText = StorageUtils.formatBinarySize(bytes)
                 setResult(appSizeText)
+                Timber.d("Finding ${libraryItem.name} size on disk $appSizeText")
             }
         }
     }
@@ -81,5 +89,11 @@ object DownloadService {
 
         return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                 activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    suspend fun setDownloadProgress(libraryItem: LibraryItem, progress: Float) {
+        val installed: Boolean = (progress >= 1f)
+        val updatedItem = libraryItem.copy(downloadProgress = progress, isInstalled = installed)
+        DaoService.db.appDao().update(updatedItem)
     }
 }

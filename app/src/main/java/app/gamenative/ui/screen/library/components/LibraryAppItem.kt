@@ -67,7 +67,7 @@ internal fun AppItem(
     LaunchedEffect(Unit) {
         if (isInstalled) {
             appSizeOnDisk = "..."
-            DownloadService.getSizeOnDiskDisplay(appInfo.appId) {  appSizeOnDisk = it }
+            DownloadService.getSizeOnDiskDisplay(appInfo) {  appSizeOnDisk = it }
         }
     }
 

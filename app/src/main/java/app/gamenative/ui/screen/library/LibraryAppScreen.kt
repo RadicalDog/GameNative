@@ -872,7 +872,7 @@ private fun AppScreenContent(
         if (isInstalled) {
             appSizeOnDisk = " ..."
 
-            DownloadService.getSizeOnDiskDisplay(appInfo.appId) {
+            DownloadService.getSizeOnDiskDisplay(appInfo) {
                 appSizeOnDisk = "$it"
             }
         }
