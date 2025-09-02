@@ -220,7 +220,7 @@ fun AppScreen(
             if (it >= 1f) {
                 downloadInfo = null
                 isInstalled = true
-                MarkerUtils.addMarker(getAppDirPath(appId), Marker.DOWNLOAD_COMPLETE_MARKER)
+                MarkerUtils.addMarker(appInfo.workingDirectory, Marker.DOWNLOAD_COMPLETE_MARKER)
             }
             downloadProgress = it
         }
@@ -1361,7 +1361,7 @@ private fun AppScreenContent(
                                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
                                         ) {
                                             Text(
-                                                text = getAppDirPath(appInfo.appId),
+                                                text = appInfo.workingDirectory,
                                                 style = MaterialTheme.typography.labelMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
