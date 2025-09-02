@@ -8,12 +8,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.gamenative.PrefManager
 import app.gamenative.data.LibraryItem
-import app.gamenative.data.SteamApp
 import app.gamenative.db.dao.SteamAppDao
 import app.gamenative.enums.Source
 import app.gamenative.service.DaoService
 import app.gamenative.service.DownloadService
-import app.gamenative.service.SteamService
 import app.gamenative.ui.data.LibraryState
 import app.gamenative.ui.enums.AppFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -129,7 +127,7 @@ class LibraryViewModel @Inject constructor(
                 .filter { item ->
                     if (PrefManager.steamUserAccountId == 0
                         && item.source == Source.STEAM
-                        && downloadDirectoryApps.contains(item.downloadFolderName)) {
+                        && downloadDirectoryApps.contains(item.pathToExe)) {
                         // Logged out of Steam explicitly, so hide Steam apps that aren't installed
                         false
                     } else {
@@ -152,14 +150,14 @@ class LibraryViewModel @Inject constructor(
                 }
                 .filter { item ->
                     if (currentState.appInfoSortType.contains(AppFilter.INSTALLED)) {
-                        item.isInstalled || downloadDirectoryApps.contains(item.downloadFolderName)
+                        item.isInstalled || downloadDirectoryApps.contains(item.pathToExe)
                     } else {
                         true
                     }
                 }
                 .sortedWith(
                     // Comes from DAO in alphabetical order
-                    compareByDescending<LibraryItem> { it.isInstalled || downloadDirectoryApps.contains(it.downloadFolderName) }
+                    compareByDescending<LibraryItem> { it.isInstalled || downloadDirectoryApps.contains(it.pathToExe) }
                 )
 
 

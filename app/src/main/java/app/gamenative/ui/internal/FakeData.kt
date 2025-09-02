@@ -107,7 +107,8 @@ internal fun fakeAppManual(idx: Int): LibraryItem {
         source = Source.MANUAL,
         iconHash = "",
         isShared = false,
-        downloadFolder = "/storage/3531-3961/myFolder/BearAndBreakfast/BearAndBreakfast.exe",
+        pathToExe = "BearAndBreakfast.exe",
+        workingDirectory = "/storage/3531-3961/myFolder/BearAndBreakfast",
         downloadProgress = 1f,
         isInstalled = true,
     )

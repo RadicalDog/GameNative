@@ -69,9 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import app.gamenative.Constants
 import app.gamenative.R
-import app.gamenative.data.SteamApp
 import app.gamenative.service.SteamService
 import app.gamenative.ui.component.LoadingScreen
 import app.gamenative.ui.component.dialog.ContainerConfigDialog
@@ -92,9 +90,6 @@ import com.skydoves.landscapist.coil.CoilImage
 import app.gamenative.utils.SteamUtils
 import com.winlator.container.ContainerData
 import com.winlator.xenvironment.ImageFsInstaller
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -118,15 +113,11 @@ import app.gamenative.enums.PathType
 import com.winlator.container.ContainerManager
 import app.gamenative.enums.SyncResult
 import android.widget.Toast
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import app.gamenative.enums.Marker
 import app.gamenative.data.LibraryItem
 import app.gamenative.enums.SaveLocation
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.ui.graphics.compositeOver
 import app.gamenative.utils.MarkerUtils
 import app.gamenative.enums.Source
 import app.gamenative.service.AppSourceService
@@ -840,7 +831,7 @@ private fun AppScreenContent(
     val lastPlayedText by remember(appInfo.appId, isInstalled) {
         mutableStateOf(
             if (isInstalled) {
-                val path = appInfo.downloadFolder
+                val path = appInfo.workingDirectory
                 val file = java.io.File(path)
                 if (file.exists()) {
                     SteamUtils.fromSteamTime((file.lastModified() / 1000).toInt())

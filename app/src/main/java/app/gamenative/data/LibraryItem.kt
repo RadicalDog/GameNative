@@ -38,8 +38,8 @@ data class LibraryItem(
     val lastPlayed: Int = 0,
     val isInstalled: Boolean = false,
     val downloadProgress: Float = 0f,
-    val downloadFolder: String = "",
-    val downloadFolderName: String = "",
+    val workingDirectory: String = "",
+    val pathToExe: String = "",
     val onExternal: Boolean = false,
     val sizeOnDisk: Long = 0, // Assumed untrustworthy; fill this often
 

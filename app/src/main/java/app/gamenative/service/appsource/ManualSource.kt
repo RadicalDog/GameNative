@@ -31,23 +31,26 @@ object ManualSource : AppSourceInterface {
         return folderName.hashCode()
     }
 
-    suspend fun addManualApp (downloadFolder: String) {
+    suspend fun addManualApp (fullFilePath: String) {
+        val workingDirectory = fullFilePath.split('/').dropLast(1).joinToString("/")
+        val pathToExe = fullFilePath.split('/').last()
 
         // User can change it, but nice to have a guess
-        val guessGameName = downloadFolder.split('/').last().replace(".exe", "")
+        val guessGameName = fullFilePath.split('/').last().replace(".exe", "")
 
         // For now, just a frame
         val lib = LibraryItem(
             name = guessGameName,
-            appId = folderNameToId(downloadFolder),
+            appId = folderNameToId(fullFilePath),
             source = Source.MANUAL,
             iconHash = "",
             isShared = false,
-            downloadFolder = downloadFolder,
+            pathToExe = pathToExe,
+            workingDirectory = workingDirectory,
             downloadProgress = 1f,
             isInstalled = true,
         )
         DaoService.db.appDao().insert(lib)
-        Timber.d("Added template manual app for $guessGameName")
+        Timber.d("Added template manual app in $workingDirectory at $pathToExe")
     }
 }
