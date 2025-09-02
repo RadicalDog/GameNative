@@ -1235,7 +1235,7 @@ private fun getWineStartCommand(
             val drive = if (driveIndex > 1) {
                 drives[driveIndex - 2]
             } else {
-                Timber.e("Could not locate game drive")
+                Timber.e("Could not locate game drive while starting Wine")
                 'D'
             }
             envVars.put("WINEPATH", "$drive:/${appLaunchInfo.workingDir}")
@@ -1250,7 +1250,7 @@ private fun getSteamlessTarget(
     container: Container,
     appLaunchInfo: LaunchInfo?,
 ): String {
-    val appDirPath = SteamService.getAppDirPath(appId)
+    val appDirPath = AppSourceService.getApp(appLaunchInfo!!.source, appId).workingDirectory
     val executablePath = SteamService.getInstalledExe(appId)
     val drives = container.drives
     val driveIndex = drives.indexOf(appDirPath)
@@ -1258,7 +1258,7 @@ private fun getSteamlessTarget(
     val drive = if (driveIndex > 1) {
         drives[driveIndex - 2]
     } else {
-        Timber.e("Could not locate game drive")
+        Timber.e("Could not locate game drive for Steamless")
         'D'
     }
     return "$drive:\\${executablePath}"
