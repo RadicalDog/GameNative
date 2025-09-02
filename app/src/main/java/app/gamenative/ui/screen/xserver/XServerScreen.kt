@@ -194,7 +194,7 @@ fun XServerScreen(
     var keyboard by remember { mutableStateOf<Keyboard?>(null) }
     // var pointerEventListener by remember { mutableStateOf<Callback<MotionEvent>?>(null) }
 
-    val thisApp: LibraryItem = AppSourceService.getApp(appSource.source, appId)
+    val thisApp: LibraryItem = AppSourceService.getApp(appId)
 
     var appLaunchInfo: LaunchInfo?
     if (appSource.source == Source.STEAM) {
@@ -210,7 +210,6 @@ fun XServerScreen(
             type = "",
             configOS = OS.from("windows"),
             configArch = OSArch.Arch64,
-            source = appSource.source,
         )
     }
 
@@ -1212,7 +1211,7 @@ private fun getWineStartCommand(
             "\"C:\\\\Program Files (x86)\\\\Steam\\\\steam.exe\" -silent -vgui -tcp " +
                     "-nobigpicture -nofriendsui -nochatui -nointro -applaunch $appId"
         } else {
-            val appInfo = AppSourceService.getApp(appLaunchInfo.source, appId)
+            val appInfo = AppSourceService.getApp(appId)
 
             // Original logic for direct game launch
             val appDirPath = appInfo.workingDirectory
@@ -1250,7 +1249,7 @@ private fun getSteamlessTarget(
     container: Container,
     appLaunchInfo: LaunchInfo?,
 ): String {
-    val appDirPath = AppSourceService.getApp(appLaunchInfo!!.source, appId).workingDirectory
+    val appDirPath = AppSourceService.getApp(appId).workingDirectory
     val executablePath = SteamService.getInstalledExe(appId)
     val drives = container.drives
     val driveIndex = drives.indexOf(appDirPath)

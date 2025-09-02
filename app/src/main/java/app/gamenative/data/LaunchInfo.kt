@@ -16,5 +16,4 @@ data class LaunchInfo(
     @Serializable(with = OsEnumSetSerializer::class)
     val configOS: EnumSet<OS>,
     val configArch: OSArch,
-    val source: Source = Source.STEAM,
 )

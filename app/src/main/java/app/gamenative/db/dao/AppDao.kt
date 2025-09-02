@@ -37,8 +37,8 @@ interface AppDao {
     @Query("SELECT * FROM app_base WHERE appId = :appId AND source = :source")
     suspend fun findApp(appId: Int, source: Source): LibraryItem?
 
-    @Query("SELECT * FROM app_base WHERE uniqueID = :uniqueID")
-    suspend fun findApp(uniqueID: String): LibraryItem?
+    @Query("SELECT * FROM app_base WHERE appId = :appId")
+    suspend fun findApp(appId: Int): LibraryItem?
 
     @Query("DELETE from app_base")
     suspend fun deleteAll()

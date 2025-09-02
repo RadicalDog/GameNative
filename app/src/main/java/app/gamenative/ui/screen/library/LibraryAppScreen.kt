@@ -175,8 +175,7 @@ fun AppScreen(
     val scope = rememberCoroutineScope()
 
     val appInfo by remember(appId) {
-        mutableStateOf(AppSourceService.getApp(source.source, appId))
-//        mutableStateOf(SteamService.getAppInfoOf(appId)!!)
+        mutableStateOf(AppSourceService.getApp(appId))
     }
 
     var downloadInfo by remember(appId) {

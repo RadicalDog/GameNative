@@ -27,10 +27,8 @@ data class LibraryItem(
     val name: String,
     @ColumnInfo(index = true)
     val source: Source,
-    @ColumnInfo(index = true)
-    val appId: Int, // to find original data
     @PrimaryKey
-    val uniqueID: String = AppSourceService.getUniqueId(source, appId),
+    val appId: Int, // Contains both the ID within the store, and the store reference. It's complicated.
 
     val iconHash: String = "", // More of an icon filename - url/[hash].jpg
 

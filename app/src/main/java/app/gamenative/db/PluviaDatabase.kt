@@ -39,7 +39,7 @@ const val DATABASE_NAME = "pluvia.db"
         FriendMessage::class,
         Emoticon::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false, // Should export once stable.
 )
 @TypeConverters(

@@ -3,6 +3,7 @@ package app.gamenative.utils
 import android.content.Context
 import app.gamenative.enums.Marker
 import app.gamenative.PrefManager
+import app.gamenative.service.AppSourceService
 import app.gamenative.service.SteamService
 import com.winlator.container.Container
 import com.winlator.container.ContainerData
@@ -366,7 +367,7 @@ object ContainerUtils {
     ): Container {
         // set up container drives to include app
         val defaultDrives = PrefManager.drives
-        val appDirPath = SteamService.getAppDirPath(appId)
+        val appDirPath = AppSourceService.getApp(appId).workingDirectory
         val drive: Char = Container.getNextAvailableDriveLetter(defaultDrives)
         val drives = "$defaultDrives$drive:$appDirPath"
         Timber.d("Prepared container drives: $drives")
