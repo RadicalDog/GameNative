@@ -35,6 +35,20 @@ object AppSourceService {
         return source.name+":"+appId
     }
 
+    fun getApp(uniqueID: String): LibraryItem {
+        val item = runBlocking (Dispatchers.IO) { DaoService.db.appDao().findApp(uniqueID) }
+        if (item == null) {
+            Timber.e("Item ${uniqueID} not found!")
+            // Rather than null, have one that can show itself as an issue
+            return LibraryItem(
+                name = "Error",
+                source = Source.STEAM,
+                appId = 0
+            )
+        }
+        return item
+    }
+
     fun getApp(source: Source, appId: Int): LibraryItem {
         val item = runBlocking (Dispatchers.IO) { DaoService.db.appDao().findApp(appId, source) }
         if (item == null) {
