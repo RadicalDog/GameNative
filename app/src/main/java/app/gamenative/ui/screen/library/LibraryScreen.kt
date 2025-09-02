@@ -39,7 +39,7 @@ import app.gamenative.ui.theme.PluviaTheme
 @Composable
 fun HomeLibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
-    onClickPlay: (Int, Boolean) -> Unit,
+    onClickPlay: (Int, Source, Boolean) -> Unit,
     onNavigateRoute: (String) -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -72,7 +72,7 @@ private fun LibraryScreenContent(
     onModalBottomSheet: (Boolean) -> Unit,
     onIsSearching: (Boolean) -> Unit,
     onSearchQuery: (String) -> Unit,
-    onClickPlay: (Int, Boolean) -> Unit,
+    onClickPlay: (Int, Source, Boolean) -> Unit,
     onNavigateRoute: (String) -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -110,7 +110,7 @@ private fun LibraryScreenContent(
                 appId = selectedAppId ?: SteamService.INVALID_APP_ID,
                 appSource = selectedAppSource,
                 onBack = { selectedAppId = null },
-                onClickPlay = { onClickPlay(selectedAppId!!, it) },
+                onClickPlay = { onClickPlay(selectedAppId!!, selectedAppSource, it) },
             )
         }
     }
@@ -164,7 +164,7 @@ private fun Preview_LibraryScreenContent() {
                 println("State: $currentState")
                 state = state.copy(modalBottomSheet = !currentState)
             },
-            onClickPlay = { _, _ -> },
+            onClickPlay = { _, _, _ -> },
             onNavigateRoute = {},
             onLogout = {},
         )

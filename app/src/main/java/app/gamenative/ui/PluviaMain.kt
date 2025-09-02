@@ -61,6 +61,7 @@ import app.gamenative.ui.theme.PluviaTheme
 import app.gamenative.utils.ContainerUtils
 import app.gamenative.utils.IntentLaunchManager
 import app.gamenative.R
+import app.gamenative.service.AppSourceService
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
 import com.winlator.xenvironment.ImageFsInstaller
@@ -578,8 +579,9 @@ fun PluviaMain(
                 deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" }),
             ) {
                 HomeLibraryScreen(
-                    onClickPlay = { launchAppId, asContainer ->
+                    onClickPlay = { launchAppId, launchAppSource, asContainer ->
                         viewModel.setLaunchedAppId(launchAppId)
+                        viewModel.setLaunchedAppSource(AppSourceService.getSourceClass(launchAppSource))
                         viewModel.setBootToContainer(asContainer)
                         preLaunchApp(
                             context = context,
@@ -623,6 +625,7 @@ fun PluviaMain(
             composable(route = PluviaScreen.XServer.route) {
                 XServerScreen(
                     appId = state.launchedAppId,
+                    appSource = state.launchedAppSource,
                     bootToContainer = state.bootToContainer,
                     navigateBack = {
                         CoroutineScope(Dispatchers.Main).launch {

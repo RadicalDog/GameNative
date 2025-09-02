@@ -34,9 +34,15 @@ import app.gamenative.PluviaApp
 import app.gamenative.PrefManager
 import app.gamenative.R
 import app.gamenative.data.LaunchInfo
+import app.gamenative.data.LibraryItem
+import app.gamenative.enums.OS
+import app.gamenative.enums.OSArch
+import app.gamenative.enums.Source
 import app.gamenative.events.AndroidEvent
 import app.gamenative.events.SteamEvent
+import app.gamenative.service.AppSourceService
 import app.gamenative.service.SteamService
+import app.gamenative.service.appsource.AppSourceInterface
 import app.gamenative.ui.data.XServerState
 import app.gamenative.utils.ContainerUtils
 import com.posthog.PostHog
@@ -121,6 +127,7 @@ import com.winlator.PrefManager as WinlatorPrefManager
 fun XServerScreen(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     appId: Int,
+    appSource: AppSourceInterface,
     bootToContainer: Boolean,
     navigateBack: () -> Unit,
     onExit: () -> Unit,
@@ -187,11 +194,25 @@ fun XServerScreen(
     var keyboard by remember { mutableStateOf<Keyboard?>(null) }
     // var pointerEventListener by remember { mutableStateOf<Callback<MotionEvent>?>(null) }
 
-    val appLaunchInfo = SteamService.getAppInfoOf(appId)?.let { appInfo ->
-        SteamService.getWindowsLaunchInfos(appId).firstOrNull()
-    }
+    val thisApp: LibraryItem = AppSourceService.getApp(appSource.source, appId)
 
-    var currentAppInfo = SteamService.getAppInfoOf(appId)
+    var appLaunchInfo: LaunchInfo?
+    if (appSource.source == Source.STEAM) {
+        appLaunchInfo = SteamService.getAppInfoOf(appId)?.let { appInfo ->
+            SteamService.getWindowsLaunchInfos(appId).firstOrNull()
+        }
+    } else {
+        // Create a LaunchInfo, mainly to keep the source close by for later use
+        appLaunchInfo = LaunchInfo(
+            executable = thisApp.pathToExe,
+            workingDir = thisApp.workingDirectory,
+            description = "",
+            type = "",
+            configOS = OS.from("windows"),
+            configArch = OSArch.Arch64,
+            source = appSource.source,
+        )
+    }
 
     var xServerView: XServerView? by remember {
         val result = mutableStateOf<XServerView?>(null)
@@ -270,11 +291,11 @@ fun XServerScreen(
                         }
 
                         NavigationDialog.ACTION_EXIT_GAME -> {
-                            if (currentAppInfo != null) {
+                            if (thisApp != null) {
                                 PostHog.capture(
                                     event = "game_closed",
                                     properties = mapOf(
-                                        "game_name" to currentAppInfo.name,
+                                        "game_name" to thisApp.name,
                                     ),
                                 )
                             } else {
@@ -1094,13 +1115,6 @@ private fun setupXEnvironment(
     environment.addComponent(NetworkInfoUpdateComponent())
     environment.addComponent(SteamClientComponent())
 
-    // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(
-    //     rootPath,
-    //     Paths.get(ImageFs.WINEPREFIX, "drive_c", UnixSocketConfig.STEAM_PIPE_PATH).toString()
-    // )))
-    // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(SteamService.getAppDirPath(appId), "/steam_pipe")))
-    // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.STEAM_PIPE_PATH)))
-
     if (xServerState.value.audioDriver == "alsa") {
         envVars.put("ANDROID_ALSA_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.ALSA_SERVER_PATH)
         envVars.put("ANDROID_ASERVER_USE_SHM", "true")
@@ -1198,13 +1212,15 @@ private fun getWineStartCommand(
             "\"C:\\\\Program Files (x86)\\\\Steam\\\\steam.exe\" -silent -vgui -tcp " +
                     "-nobigpicture -nofriendsui -nochatui -nointro -applaunch $appId"
         } else {
+            val appInfo = AppSourceService.getApp(appLaunchInfo.source, appId)
+
             // Original logic for direct game launch
-            val appDirPath = SteamService.getAppDirPath(appId)
+            val appDirPath = appInfo.workingDirectory
             var executablePath = ""
             if (container.executablePath.isNotEmpty()) {
                 executablePath = container.executablePath
             } else {
-                executablePath = SteamService.getInstalledExe(appId)
+                executablePath = appInfo.pathToExe
                 container.executablePath = executablePath
                 container.saveData()
             }

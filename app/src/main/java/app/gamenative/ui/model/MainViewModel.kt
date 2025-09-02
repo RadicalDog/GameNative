@@ -14,6 +14,7 @@ import app.gamenative.enums.PathType
 import app.gamenative.events.AndroidEvent
 import app.gamenative.events.SteamEvent
 import app.gamenative.service.SteamService
+import app.gamenative.service.appsource.AppSourceInterface
 import app.gamenative.ui.data.MainState
 import app.gamenative.utils.IntentLaunchManager
 import app.gamenative.ui.screen.PluviaScreen
@@ -189,6 +190,10 @@ class MainViewModel @Inject constructor(
 
     fun setLaunchedAppId(value: Int) {
         _state.update { it.copy(launchedAppId = value) }
+    }
+
+    fun setLaunchedAppSource(source: AppSourceInterface) {
+        _state.update { it.copy(launchedAppSource = source) }
     }
 
     fun setBootToContainer(value: Boolean) {

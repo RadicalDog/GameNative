@@ -1,6 +1,9 @@
 package app.gamenative.ui.data
 
 import app.gamenative.enums.AppTheme
+import app.gamenative.enums.Source
+import app.gamenative.service.AppSourceService
+import app.gamenative.service.appsource.AppSourceInterface
 import app.gamenative.ui.screen.PluviaScreen
 import com.materialkolor.PaletteStyle
 
@@ -16,6 +19,7 @@ data class MainState(
     val hasCrashedLastStart: Boolean = false,
     val isSteamConnected: Boolean = false,
     val launchedAppId: Int = 0,
+    val launchedAppSource: AppSourceInterface = AppSourceService.getSourceClass(Source.STEAM),
     val bootToContainer: Boolean = false,
     val showBootingSplash: Boolean = false,
 )

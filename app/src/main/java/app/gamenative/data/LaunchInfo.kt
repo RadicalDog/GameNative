@@ -3,6 +3,7 @@ package app.gamenative.data
 import app.gamenative.db.serializers.OsEnumSetSerializer
 import app.gamenative.enums.OS
 import app.gamenative.enums.OSArch
+import app.gamenative.enums.Source
 import java.util.EnumSet
 import kotlinx.serialization.Serializable
 
@@ -15,4 +16,5 @@ data class LaunchInfo(
     @Serializable(with = OsEnumSetSerializer::class)
     val configOS: EnumSet<OS>,
     val configArch: OSArch,
+    val source: Source = Source.STEAM,
 )
