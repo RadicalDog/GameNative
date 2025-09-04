@@ -11,8 +11,10 @@ import app.gamenative.di.IAppTheme
 import app.gamenative.enums.AppTheme
 import app.gamenative.enums.LoginResult
 import app.gamenative.enums.PathType
+import app.gamenative.enums.Source
 import app.gamenative.events.AndroidEvent
 import app.gamenative.events.SteamEvent
+import app.gamenative.service.AppSourceService
 import app.gamenative.service.SteamService
 import app.gamenative.service.appsource.AppSourceInterface
 import app.gamenative.ui.data.MainState
@@ -207,11 +209,13 @@ class MainViewModel @Inject constructor(
             PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation))
 
             val apiJob = viewModelScope.async(Dispatchers.IO) {
-                val container = ContainerUtils.getOrCreateContainer(context, appId)
-                if (container.isLaunchRealSteam()) {
-                    SteamUtils.restoreSteamApi(context, appId)
-                } else {
-                    SteamUtils.replaceSteamApi(context, appId)
+                if (AppSourceService.getSourceFromAppId(appId) == Source.STEAM) {
+                    val container = ContainerUtils.getOrCreateContainer(context, appId)
+                    if (container.isLaunchRealSteam()) {
+                        SteamUtils.restoreSteamApi(context, appId)
+                    } else {
+                        SteamUtils.replaceSteamApi(context, appId)
+                    }
                 }
             }
 

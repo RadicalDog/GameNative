@@ -3,6 +3,7 @@ package app.gamenative.utils
 import android.content.Context
 import app.gamenative.enums.Marker
 import app.gamenative.PrefManager
+import app.gamenative.enums.Source
 import app.gamenative.service.AppSourceService
 import app.gamenative.service.SteamService
 import com.winlator.container.Container
@@ -269,10 +270,13 @@ object ContainerUtils {
         val lcAll = mapLanguageToLocale(containerData.language)
         container.setLC_ALL(lcAll)
         // If language changed, remove the STEAM_DLL_REPLACED marker so settings regenerate
-        if (previousLanguage.lowercase() != containerData.language.lowercase()) {
-            val appDirPath = SteamService.getAppDirPath(container.id)
-            MarkerUtils.removeMarker(appDirPath, Marker.STEAM_DLL_REPLACED)
-            Timber.i("Language changed from '$previousLanguage' to '${containerData.language}'. Cleared STEAM_DLL_REPLACED marker for container ${container.id}.")
+
+        if (AppSourceService.getSourceFromAppId(container.id) == Source.STEAM) {
+            if (previousLanguage.lowercase() != containerData.language.lowercase()) {
+                val appDirPath = SteamService.getAppDirPath(container.id)
+                MarkerUtils.removeMarker(appDirPath, Marker.STEAM_DLL_REPLACED)
+                Timber.i("Language changed from '$previousLanguage' to '${containerData.language}'. Cleared STEAM_DLL_REPLACED marker for container ${container.id}.")
+            }
         }
 
         // Apply controller settings to container
