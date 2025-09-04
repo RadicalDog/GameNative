@@ -4,6 +4,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import app.gamenative.data.LibraryItem
 import app.gamenative.enums.Source
+import app.gamenative.service.AppSourceService
 import app.gamenative.service.DaoService
 import timber.log.Timber
 
@@ -28,7 +29,7 @@ object ManualSource : AppSourceInterface {
     private fun folderNameToId (folderName: String): Int {
         /* Just needs to be unique, but it is also helpful to generate this way in case someone goes
         back and forwards trying to select one file so we don't end up with lots of pointless DAO entries */
-        return folderName.hashCode()
+        return AppSourceService.createAppId(folderName.hashCode(), source)
     }
 
     suspend fun addManualApp (fullFilePath: String) {

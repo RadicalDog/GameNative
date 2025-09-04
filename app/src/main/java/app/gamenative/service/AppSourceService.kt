@@ -31,6 +31,22 @@ object AppSourceService {
         }
     }
 
+    fun getSourceFromAppId(appId: Int): Source {
+        // Extract leftmost 5 bits
+        val sourceValue = (appId ushr 27) and 0x1F
+        return Source.entries.find { it.value == sourceValue } ?: Source.STEAM
+    }
+
+    // Create an appId with source
+    fun createAppId(actualAppId: Int, source: Source): Int {
+        return (actualAppId and 0x07FFFFFF) or (source.value shl 27)
+    }
+
+    // Get the actual app ID without source bits
+    fun getAppIdWithoutSource(appId: Int): Int {
+        return appId and 0x07FFFFFF  // Keep only rightmost 27 bits
+    }
+
     fun getApp(appId: Int): LibraryItem {
         val item = runBlocking (Dispatchers.IO) { DaoService.db.appDao().findApp(appId) }
         if (item == null) {
