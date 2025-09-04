@@ -150,14 +150,14 @@ class LibraryViewModel @Inject constructor(
                 }
                 .filter { item ->
                     if (currentState.appInfoSortType.contains(AppFilter.INSTALLED)) {
-                        item.isInstalled || downloadDirectoryApps.contains(item.pathToExe)
+                        item.isInstalled || downloadDirectoryApps.contains(item.workingDirectory.split('/').last())
                     } else {
                         true
                     }
                 }
                 .sortedWith(
                     // Comes from DAO in alphabetical order
-                    compareByDescending<LibraryItem> { it.isInstalled || downloadDirectoryApps.contains(it.pathToExe) }
+                    compareByDescending<LibraryItem> { it.isInstalled || downloadDirectoryApps.contains(it.workingDirectory.split('/').last()) }
                 )
 
 

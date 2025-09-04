@@ -39,6 +39,7 @@ import app.gamenative.PrefManager
 import app.gamenative.R
 import app.gamenative.service.appsource.ManualSource
 import app.gamenative.ui.component.topbar.BackButton
+import app.gamenative.ui.screen.PluviaScreen
 import app.gamenative.ui.screen.overview.components.FilePickerButton
 import app.gamenative.ui.theme.PluviaTheme
 import kotlinx.coroutines.CoroutineScope
@@ -93,6 +94,8 @@ fun AddGameScreen(
                             // Send it!
                             ManualSource.addManualApp(fileLocation.toString())
                         }
+                        // Todo: check everything OK before navigating...
+                        onNavigateRoute(PluviaScreen.Library.route)
                     },
                     shape = RoundedCornerShape(16.dp),
                     contentPadding = PaddingValues(16.dp)
