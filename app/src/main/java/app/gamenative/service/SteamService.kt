@@ -531,8 +531,11 @@ class SteamService : Service(), IChallengeUrlChanged {
          * If everything fails, return the game's install directory.
          */
         fun getInstalledExe(appId: Int): String {
+            // Slower than providing the appInfo directly
             val appInfo = getAppInfoOf(appId) ?: return ""
-
+            return getInstalledExe(appInfo)
+        }
+        fun getInstalledExe(appInfo: SteamApp): String {
             val installDir = appInfo.config.installDir.ifEmpty { appInfo.name }
 
             val depots = appInfo.depots.values.filter { d ->
@@ -602,8 +605,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             /* 4️⃣ last resort */
             Timber.w("No executable found; falling back to install dir")
-            return (getAppInfoOf(appId)?.let { appInfo ->
-                getWindowsLaunchInfos(appId).firstOrNull()
+            return (appInfo.let { appInfo ->
+                getWindowsLaunchInfos(appInfo.id).firstOrNull()
             })?.executable ?: ""
         }
 

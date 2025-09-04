@@ -17,7 +17,6 @@ import app.gamenative.service.AppSourceService
 )
 data class LibraryItem(
     /* What we save about each app regardless of source.
-    Enough info to locate in the source DAO, not intended to duplicate.
 
     Also responsible for tracking files on disk, remember info for filtering, and
     provide user customisation e.g. favourites or title/icon overrides
