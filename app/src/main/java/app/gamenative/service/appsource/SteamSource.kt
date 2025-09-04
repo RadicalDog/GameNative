@@ -131,7 +131,6 @@ object SteamSource : AppSourceInterface {
                 source = Source.STEAM,
                 iconHash = steamApp.clientIconHash,
                 isShared = !steamApp.ownerAccountId.contains(PrefManager.steamUserAccountId),
-                pathToExe = SteamService.getInstalledExe(steamApp),
                 workingDirectory = SteamService.getAppDirPath(steamApp.id),
                 type = steamApp.type
             )

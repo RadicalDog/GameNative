@@ -121,6 +121,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import app.gamenative.utils.MarkerUtils
 import app.gamenative.enums.Source
 import app.gamenative.service.AppSourceService
+import app.gamenative.service.DaoService
 import app.gamenative.service.appsource.AppSourceInterface
 import app.gamenative.ui.internal.fakeAppManual
 
@@ -233,6 +234,12 @@ fun AppScreen(
 
     LaunchedEffect(appId) {
         Timber.d("Selected app $appId")
+
+        if (AppSourceService.getSourceFromAppId(appId) == Source.STEAM && appInfo.pathToExe == "") {
+            // Bit ugly, but ensure the exe path is populated since it wasn't possible at sync time
+            val updatedItem = appInfo.copy(pathToExe = SteamService.getInstalledExe(appId))
+            DaoService.db.appDao().update(updatedItem)
+        }
     }
 
     val oldGamesDirectory by remember {
